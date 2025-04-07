@@ -2,6 +2,7 @@
 const nextConfig = {
   images: {
     domains: ['images.pexels.com'],
+    unoptimized: true,
   },
   // Disable type checking during build for faster builds
   typescript: {
@@ -11,6 +12,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Output standalone build for better compatibility with Netlify
+  output: 'standalone',
 }
 
 module.exports = nextConfig
