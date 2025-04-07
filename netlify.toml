@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --platform=linux --arch=x64 && npx prisma generate && npm run build"
+  command = "npm ci && npx prisma generate && npm run build"
   publish = ".next"
 
 [[plugins]]
