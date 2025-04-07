@@ -1,6 +1,6 @@
 [build]
-  command = "npx prisma generate && npm run build"
-  publish = ".next/standalone/.next"
+  command = "npm install --platform=linux --arch=x64 && npx prisma generate && npm run build"
+  publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

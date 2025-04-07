@@ -12,8 +12,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Output standalone build for better compatibility with Netlify
-  output: 'standalone',
+  // Remove standalone output for simpler deployment
 }
 
 module.exports = nextConfig
