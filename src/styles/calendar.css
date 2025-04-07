@@ -1,0 +1,113 @@
+/* Custom calendar styles to override any conflicting styles */
+
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: #0ea5e9;
+  --rdp-background-color: #e7edff;
+  --rdp-accent-color-dark: #3fbaeb;
+  --rdp-background-color-dark: #0ea5e9;
+  --rdp-outline: 2px solid var(--rdp-accent-color);
+  --rdp-outline-selected: 2px solid var(--rdp-accent-color);
+  margin: 0;
+  /* Reset any external CSS that might interfere */
+  box-sizing: border-box;
+}
+
+.rdp *,
+.rdp *:before,
+.rdp *:after {
+  box-sizing: border-box;
+}
+
+.rdp-months {
+  display: flex;
+  justify-content: center;
+}
+
+.rdp-month {
+  background-color: #fff;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.rdp-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+  text-align: center;
+  font-weight: 500;
+  position: relative;
+}
+
+.rdp-nav {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+}
+
+.rdp-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.rdp-head_row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  width: 100%;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.rdp-head_cell {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #64748b;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.rdp-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  width: 100%;
+  text-align: center;
+}
+
+.rdp-cell {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.rdp-day {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #000;
+}
+
+.rdp-day_selected {
+  background-color: var(--rdp-accent-color);
+  color: white;
+}
+
+.rdp-day_today {
+  border: 1px solid var(--rdp-accent-color);
+}
+
+.rdp-day:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
+  background-color: var(--rdp-background-color);
+}
