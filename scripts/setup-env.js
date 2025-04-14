@@ -19,12 +19,26 @@ const generateEnvFile = () => {
   if (process.env.NEXTAUTH_URL) {
     envContent += `NEXTAUTH_URL="${process.env.NEXTAUTH_URL}"
 `;
+  } else {
+    // Default value for Netlify deployment
+    envContent += `NEXTAUTH_URL="https://workspace-share-nl.netlify.app"
+`;
   }
   
   if (process.env.NEXTAUTH_SECRET) {
     envContent += `NEXTAUTH_SECRET="${process.env.NEXTAUTH_SECRET}"
 `;
+  } else {
+    // Generate a random string for development
+    envContent += `NEXTAUTH_SECRET="${Math.random().toString(36).substring(2, 15)}"
+`;
   }
+
+  // Add Google OAuth credentials (with empty defaults to prevent build errors)
+  envContent += `GOOGLE_CLIENT_ID="${process.env.GOOGLE_CLIENT_ID || ''}"
+`;
+  envContent += `GOOGLE_CLIENT_SECRET="${process.env.GOOGLE_CLIENT_SECRET || ''}"
+`;
 
   // Add Cloudinary variables if they exist
   if (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
@@ -50,11 +64,13 @@ const generateEnvFile = () => {
   // Write the .env file
   try {
     fs.writeFileSync('.env', envContent);
-    console.log('Successfully created .env file for Prisma and Cloudinary');
+    console.log('Successfully created .env file with the following variables:');
+    console.log(envContent.replace(/".*"/g, '"***"')); // Log without exposing sensitive values
   } catch (error) {
-    console.error('Error creating .env file:', error);
+    console.error('Error writing .env file:', error);
     process.exit(1);
   }
 };
 
+// Run the function
 generateEnvFile();
