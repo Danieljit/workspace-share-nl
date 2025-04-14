@@ -11,6 +11,30 @@ declare module "next-auth" {
   }
 }
 
+// Helper function to sanitize URLs
+function sanitizeUrl(url: string | undefined): string {
+  if (!url) return 'http://localhost:3000';
+  
+  // Remove markdown link syntax if present
+  let cleanUrl = url.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+  // Remove any quotes
+  cleanUrl = cleanUrl.replace(/["']/g, '');
+  
+  // Ensure it's a valid URL
+  try {
+    new URL(cleanUrl);
+    return cleanUrl;
+  } catch (e) {
+    console.error('Invalid URL:', cleanUrl);
+    return 'http://localhost:3000';
+  }
+}
+
+// Clean the NEXTAUTH_URL environment variable
+if (process.env.NEXTAUTH_URL) {
+  process.env.NEXTAUTH_URL = sanitizeUrl(process.env.NEXTAUTH_URL);
+}
+
 export const authOptions: NextAuthConfig = {
   adapter: PrismaAdapter(db),
   providers: [

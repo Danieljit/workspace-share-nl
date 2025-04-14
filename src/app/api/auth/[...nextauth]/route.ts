@@ -6,6 +6,19 @@ import { User } from 'next-auth';
 /**
  * NextAuth.js v5 configuration
  */
+let nextAuthUrl = process.env.NEXTAUTH_URL;
+
+// Try to clean up any markdown or formatting in the URL
+if (nextAuthUrl) {
+  // Remove markdown link syntax if present
+  nextAuthUrl = nextAuthUrl.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+  // Remove any quotes
+  nextAuthUrl = nextAuthUrl.replace(/["']/g, '');
+  
+  // Override the environment variable with the cleaned version
+  process.env.NEXTAUTH_URL = nextAuthUrl;
+}
+
 const handler = NextAuth({
   providers: [
     Google({
