@@ -1,52 +1,28 @@
 import NextAuth from 'next-auth';
-import { type NextAuthConfig } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
+import Google from 'next-auth/providers/google';
 
-// Configure NextAuth options
-export const authOptions: NextAuthConfig = {
+/**
+ * NextAuth.js v5 configuration
+ */
+const handler = NextAuth({
   providers: [
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize() {
-        // During testing, always return a valid user
-        return {
-          id: '1',
-          name: 'Test User',
-          email: 'test@example.com',
-        };
-      },
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
   pages: {
     signIn: '/signin',
-  },
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    error: '/signin',
   },
   callbacks: {
-    async session({ session, token }: { session: any; token: any }) {
-      // Add user ID to session
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: '1',
-        },
-      };
-    },
-    async jwt({ token }: { token: any }) {
-      return token;
+    async session({ session, token }) {
+      if (session?.user) {
+        session.user.id = token.sub || '';
+      }
+      return session;
     },
   },
-};
+});
 
-// Create NextAuth handler
-const handler = NextAuth(authOptions);
-
-// Export GET and POST handlers
 export { handler as GET, handler as POST };

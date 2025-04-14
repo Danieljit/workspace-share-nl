@@ -13,6 +13,7 @@ import { AvailabilityPricingStep } from "./steps/availability-pricing-step"
 import { FinalReviewStep } from "./steps/final-review-step"
 import { ArrowLeft, ArrowRight, Save, Loader2 } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
+import { useAuth } from "@/components/providers/auth-provider"
 
 type FormData = {
   workspaceType: string | null;
@@ -20,7 +21,7 @@ type FormData = {
   amenities: string[];
   location: Record<string, any>;
   buildingContext: Record<string, any>;
-  photos: Array<any>;
+  photos: Array<string>;
   title: string;
   description: string;
   availability: Record<string, any>;
@@ -44,6 +45,7 @@ function FormWithSearchParams({ onStepChange }: { onStepChange: (step: number) =
 
 export function ListingForm() {
   const router = useRouter()
+  const { user, isAuthenticated } = useAuth()
   
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
@@ -182,37 +184,65 @@ export function ListingForm() {
     setIsLoading(true)
     
     try {
-      // In a real app, this would be an API call to save the data
-      // For now, we'll simulate a successful submission and save to localStorage
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Prepare data for API submission
+      const apiData = {
+        title: formData.title,
+        description: formData.description,
+        workspaceType: formData.workspaceType,
+        address: formData.location?.address,
+        city: formData.location?.city,
+        postalCode: formData.location?.postalCode,
+        coordinates: formData.location?.coordinates,
+        directions: formData.location?.directions,
+        transportInfo: formData.location?.transportInfo,
+        parkingInfo: formData.location?.parkingInfo,
+        buildingContext: formData.buildingContext,
+        workspaceDetails: formData.workspaceDetails,
+        amenities: formData.amenities,
+        photos: formData.photos,
+        availability: formData.availability,
+        pricing: formData.pricing,
+        hostInfo: formData.hostInfo || {
+          name: user?.name || "Demo Host",
+          email: user?.email || "demo@example.com",
+        },
+        // Add user ID if authenticated
+        userId: user?.id || "demo-user",
+      }
       
-      // Save the workspace listing to localStorage (simulating a database)
-      const existingListings = JSON.parse(localStorage.getItem("workspaceListings") || "[]");
-      const newListing = {
-        id: crypto.randomUUID(),
-        ...formData,
-        createdAt: new Date().toISOString(),
-        status: "active"
-      };
+      // Submit to API
+      const response = await fetch('/api/spaces', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiData),
+      })
       
-      localStorage.setItem("workspaceListings", JSON.stringify([...existingListings, newListing]));
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to create listing')
+      }
       
-      // Clear form data from localStorage
+      const result = await response.json()
+      
+      // Clear form data from localStorage after successful submission
       localStorage.removeItem("workspaceListingFormData")
       
       // Show success message
       toast({
-        title: "Listing created successfully!",
-        description: "Your workspace has been listed and is now visible to potential renters.",
+        title: "Listing created!",
+        description: "Your workspace has been successfully listed.",
       })
       
-      // Redirect to success page or dashboard
-      router.push("/dashboard")
-    } catch (error) {
-      console.error("Error submitting form", error)
+      // Redirect to the new listing
+      router.push(`/spaces/${result.id}`)
+    } catch (error: any) {
+      console.error('Error creating listing:', error)
+      
       toast({
-        title: "Submission failed",
-        description: "There was an error creating your listing. Please try again.",
+        title: "Error creating listing",
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -220,120 +250,76 @@ export function ListingForm() {
     }
   }
   
-  const renderStepContent = () => {
+  // Calculate progress percentage
+  const progressPercentage = (currentStep / 7) * 100
+  
+  // Render the current step
+  const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <WorkspaceTypeStep 
-            formData={formData} 
-            updateFormData={updateFormData} 
-          />
-        )
+        return <WorkspaceTypeStep formData={formData} updateFormData={updateFormData} />
       case 2:
-        return (
-          <WorkspaceDetailsStep 
-            formData={formData} 
-            updateFormData={updateFormData} 
-          />
-        )
+        return <WorkspaceDetailsStep formData={formData} updateFormData={updateFormData} />
       case 3:
-        return (
-          <AmenitiesStep 
-            formData={formData} 
-            updateFormData={updateFormData} 
-          />
-        )
+        return <AmenitiesStep formData={formData} updateFormData={updateFormData} />
       case 4:
-        return (
-          <LocationStep 
-            formData={formData} 
-            updateFormData={updateFormData} 
-          />
-        )
+        return <LocationStep formData={formData} updateFormData={updateFormData} />
       case 5:
-        return (
-          <WorkspacePhotosStep 
-            formData={formData} 
-            updateFormData={updateFormData} 
-          />
-        )
+        return <WorkspacePhotosStep formData={formData} updateFormData={updateFormData} />
       case 6:
-        return (
-          <AvailabilityPricingStep 
-            formData={formData} 
-            updateFormData={updateFormData} 
-          />
-        )
+        return <AvailabilityPricingStep formData={formData} updateFormData={updateFormData} />
       case 7:
-        return (
-          <FinalReviewStep 
-            formData={formData} 
-          />
-        )
+        return <FinalReviewStep formData={formData} />
       default:
-        return null
+        return <WorkspaceTypeStep formData={formData} updateFormData={updateFormData} />
     }
   }
   
-  // Check if the current step is valid to proceed
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return !!formData.workspaceType
-      case 2:
-        return !!formData.workspaceDetails && Object.keys(formData.workspaceDetails).length > 0
-      case 3:
-        return !!formData.amenities && formData.amenities.length > 0
-      case 4:
-        return !!formData.location && !!formData.location.address
-      case 5:
-        return !!formData.photos && formData.photos.length > 0 && !!formData.title
-      case 6:
-        return !!formData.pricing && !!formData.pricing.pricePerDay && !!formData.hostInfo && !!formData.hostInfo.name
-      case 7:
-        return true // Final review step can always proceed to submission
-      default:
-        return false
+  // Get the label for the current step
+  const getStepLabel = (step: number) => {
+    switch (step) {
+      case 1: return "Workspace Type"
+      case 2: return "Workspace Details"
+      case 3: return "Amenities"
+      case 4: return "Location"
+      case 5: return "Photos & Description"
+      case 6: return "Availability & Pricing"
+      case 7: return "Review & Submit"
+      default: return ""
     }
   }
   
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
       <div className="w-full max-w-4xl px-4 py-8">
-        {/* Wrap the search params component in Suspense */}
         <Suspense fallback={null}>
           <FormWithSearchParams onStepChange={handleStepChange} />
         </Suspense>
         
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">Create Your Listing</h1>
+          <h1 className="text-3xl font-bold mb-2">List Your Workspace</h1>
+          <p className="text-muted-foreground mb-6">Step {currentStep} of 7: {getStepLabel(currentStep)}</p>
           
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Step {currentStep} of 7</span>
-              <span>{getStepLabel(currentStep)}</span>
-            </div>
-            <Progress value={currentStep * 14.29} className="h-2" />
-          </div>
+          <Progress value={progressPercentage} className="h-2" />
         </div>
         
-        <div className="bg-background rounded-lg border p-6 shadow-sm mb-6">
-          {renderStepContent()}
+        <div className="bg-card rounded-lg border p-6 shadow-sm">
+          {renderStep()}
         </div>
         
-        <div className="flex justify-between">
-          <Button 
-            variant="outline" 
+        <div className="mt-8 flex justify-between items-center">
+          <Button
+            variant="outline"
             onClick={prevStep}
             disabled={isLoading}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            {currentStep === 1 ? "Back to Intro" : "Previous Step"}
+            {currentStep === 1 ? "Cancel" : "Back"}
           </Button>
           
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={saveProgress}
               disabled={isLoading}
             >
@@ -341,9 +327,9 @@ export function ListingForm() {
               Save Progress
             </Button>
             
-            <Button 
+            <Button
               onClick={nextStep}
-              disabled={isLoading || !canProceed()}
+              disabled={isLoading}
             >
               {isLoading ? (
                 <>
@@ -352,8 +338,8 @@ export function ListingForm() {
                 </>
               ) : (
                 <>
-                  {currentStep === 7 ? "Submit Listing" : "Next Step"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  {currentStep === 7 ? "Submit Listing" : "Next"}
+                  {currentStep < 7 && <ArrowRight className="ml-2 h-4 w-4" />}
                 </>
               )}
             </Button>
@@ -362,17 +348,4 @@ export function ListingForm() {
       </div>
     </div>
   )
-}
-
-function getStepLabel(step: number): string {
-  switch (step) {
-    case 1: return "Workspace Type"
-    case 2: return "Workspace Details"
-    case 3: return "Amenities"
-    case 4: return "Location"
-    case 5: return "Photos & Description"
-    case 6: return "Availability & Pricing"
-    case 7: return "Final Review"
-    default: return ""
-  }
 }

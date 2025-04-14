@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Database } from "lucide-react"
 
 export function NewsletterCTA() {
   return (
@@ -80,20 +81,24 @@ export function Footer() {
         
         <div className="border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
-            <span> 2025 WorkspaceShare, Inc.</span>
+            <span>&copy; 2025 WorkspaceShare, Inc.</span>
             <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
             <Link href="/terms" className="hover:text-foreground">Terms</Link>
             <Link href="/sitemap" className="hover:text-foreground">Sitemap</Link>
             <Link href="/company" className="hover:text-foreground">Company Details</Link>
+            <Link href="/db-status" className="hover:text-foreground flex items-center">
+              <Database className="h-3 w-3 mr-1" />
+              Database Status
+            </Link>
           </div>
           <div className="flex gap-6">
             <select 
               className="bg-transparent text-sm text-muted-foreground hover:text-foreground cursor-pointer"
               defaultValue="EUR"
             >
-              <option value="EUR"> EUR</option>
+              <option value="EUR">&euro; EUR</option>
               <option value="USD">$ USD</option>
-              <option value="GBP"> GBP</option>
+              <option value="GBP">&pound; GBP</option>
             </select>
             <select
               className="bg-transparent text-sm text-muted-foreground hover:text-foreground cursor-pointer"

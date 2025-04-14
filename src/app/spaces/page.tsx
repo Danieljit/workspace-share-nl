@@ -334,22 +334,56 @@ function SpacesContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="lg:col-span-1">
+              <div className="grid grid-cols-1 gap-6">
                 {sortedSpaces.map((space) => {
                   if (!space || !space.id) return null;
                   
                   // Safely parse the first image URL
                   let imageUrl = '/placeholder.jpg';
                   try {
-                    if (space.images && typeof space.images === 'string' && space.images.length > 0) {
-                      const firstImage = space.images.split(',')[0].trim();
-                      if (firstImage && firstImage.startsWith('http')) {
-                        imageUrl = firstImage;
+                    if (space.images) {
+                      // Handle different image formats
+                      if (typeof space.images === 'string') {
+                        // Try to parse as JSON first
+                        try {
+                          const imagesArray = JSON.parse(space.images);
+                          if (Array.isArray(imagesArray) && imagesArray.length > 0) {
+                            imageUrl = imagesArray[0];
+                          } else if (space.images.includes(',')) {
+                            // If not valid JSON but contains commas, try comma-separated format
+                            const imgArray = space.images.split(',');
+                            if (imgArray && imgArray.length > 0) {
+                              imageUrl = imgArray[0].trim();
+                            }
+                          } else {
+                            // Just use the string directly
+                            imageUrl = space.images.trim();
+                          }
+                        } catch (e) {
+                          // If JSON parsing fails, treat as comma-separated or direct URL
+                          if (space.images.includes(',')) {
+                            const imgArray = space.images.split(',');
+                            if (imgArray && imgArray.length > 0) {
+                              imageUrl = imgArray[0].trim();
+                            }
+                          } else {
+                            imageUrl = space.images.trim();
+                          }
+                        }
+                      } else if (Array.isArray(space.images)) {
+                        // It's already an array
+                        // Ensure we have a string type for the image URL
+                        const firstImage = space.images[0];
+                        if (typeof firstImage === 'string') {
+                          imageUrl = firstImage;
+                        }
                       }
                     }
                   } catch (error) {
                     console.error('Error parsing image URL:', error);
+                    // Fallback to placeholder
+                    imageUrl = '/placeholder.jpg';
                   }
                     
                   return (
@@ -371,14 +405,13 @@ function SpacesContent() {
                       <div className="p-4">
                         <div className="flex justify-between items-start">
                           <h2 className="text-xl font-semibold">{space.name || 'Unnamed Space'}</h2>
-                          <span className="font-bold text-primary">
-                            €{space.price || 0}/day
+                          <span className="font-bold text-lg text-primary">
+                            €{Math.round(space.price || 0)}/day
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{space.location || 'Unknown Location'}</p>
-                        <p className="text-sm mb-4">{space.description || 'No description available'}</p>
+                        <p className="text-base text-muted-foreground mb-4">{space.location || 'Unknown Location'}</p>
                         <div className="flex justify-between items-center">
-                          <span className="inline-block bg-muted text-muted-foreground text-xs px-2 py-1 rounded">
+                          <span className="inline-block bg-muted text-muted-foreground text-sm px-2 py-1 rounded">
                             {space.type || 'Other'}
                           </span>
                           <Button asChild size="sm">
@@ -391,7 +424,7 @@ function SpacesContent() {
                 })}
               </div>
             </div>
-            <div className="hidden lg:block h-[calc(100vh-200px)] sticky top-24">
+            <div className="lg:col-span-2 h-[calc(100vh-200px)] sticky top-24">
               {locationMarkers && locationMarkers.length > 0 ? (
                 <Map 
                   ref={mapRef}

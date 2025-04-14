@@ -49,11 +49,11 @@ export function HomePage({ spaces }: HomePageProps) {
         </div>
         <div className="relative container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-8">
-            <h1 className="text-4xl md:text-6xl font-bold text-white">
-              Find Your Perfect Workspace
+            <h1 className="text-4xl font-extrabold sm:text-5xl md:text-6xl">
+              The Red Stapler
             </h1>
             <p className="text-xl text-white/90">
-              Book professional workspaces for a day, week, or month.
+              And yeah, we're gonna need you to come in on Saturday.
             </p>
             <div className="max-w-2xl mx-auto">
               <SearchBar

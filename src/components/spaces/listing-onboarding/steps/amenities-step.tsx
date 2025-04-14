@@ -58,16 +58,16 @@ export function AmenitiesStep({ formData, updateFormData }: AmenitiesStepProps) 
   ]
 
   const toggleAmenity = (amenityId: string) => {
-    setSelectedAmenities(prev => {
-      const newSelection = prev.includes(amenityId)
-        ? prev.filter(id => id !== amenityId)
-        : [...prev, amenityId]
-      
-      // Update form data
-      updateFormData("amenities", newSelection)
-      
-      return newSelection
-    })
+    // First update the local state
+    const newSelection = selectedAmenities.includes(amenityId)
+      ? selectedAmenities.filter(id => id !== amenityId)
+      : [...selectedAmenities, amenityId]
+    
+    // Set the local state
+    setSelectedAmenities(newSelection)
+    
+    // Then update the form data separately, not inside the state setter
+    updateFormData("amenities", newSelection)
   }
 
   return (

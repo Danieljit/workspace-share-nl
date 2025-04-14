@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['images.pexels.com'],
+    domains: ['images.pexels.com', 'images.unsplash.com', 'source.unsplash.com'],
     unoptimized: true,
   },
   // Disable type checking during build for faster builds

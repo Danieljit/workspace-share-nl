@@ -135,13 +135,16 @@ export function ListingOnboardingLanding() {
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
       <div className="w-full max-w-6xl px-4 py-12">
+        {/* Title in its own row */}
+        <div className="mb-10 text-center">
+          <h1 className="text-5xl md:text-6xl font-bold leading-tight">
+            Turn Your Empty Space Into Income
+          </h1>
+        </div>
+        
         <div className="grid md:grid-cols-2 gap-12 items-center">
           {/* Left Column */}
           <div className="space-y-8">
-            <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              Turn Your Empty Space Into Income
-            </h1>
-            
             <div className="bg-primary/10 p-6 rounded-lg border border-primary/20">
               <h2 className="text-xl font-medium mb-2">Earn up to</h2>
               <div className="text-4xl font-bold text-primary mb-4">
@@ -193,13 +196,6 @@ export function ListingOnboardingLanding() {
                 <div>
                   <p className="font-medium">You control availability</p>
                   <p className="text-muted-foreground">Set your own schedule and booking rules</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-6 w-6 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Meet interesting professionals</p>
-                  <p className="text-muted-foreground">Connect with people from diverse industries</p>
                 </div>
               </li>
               <li className="flex items-start gap-2">

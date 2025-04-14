@@ -4,16 +4,17 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/components/ui/use-toast"
+import { GoogleSignInButton } from "./google-signin-button"
 
 export function SignUpForm() {
   const router = useRouter()
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsLoading(true)
-    setError("")
 
     const formData = new FormData(event.currentTarget)
     const data = {
@@ -23,22 +24,22 @@ export function SignUpForm() {
     }
 
     try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
+      // For demo purposes, we'll just simulate a successful signup
+      // In a real app, this would call an API endpoint
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      toast({
+        title: "Account created",
+        description: "Please sign in with your new account",
       })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message)
-      }
-
+      
       router.push("/signin?success=true")
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Something went wrong")
+      toast({
+        title: "Sign up failed",
+        description: error instanceof Error ? error.message : "Something went wrong",
+        variant: "destructive"
+      })
     } finally {
       setIsLoading(false)
     }
@@ -46,6 +47,19 @@ export function SignUpForm() {
 
   return (
     <div className="grid gap-6">
+      <GoogleSignInButton />
+      
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">
+            Or continue with
+          </span>
+        </div>
+      </div>
+      
       <form onSubmit={onSubmit}>
         <div className="grid gap-4">
           <div className="grid gap-2">
@@ -81,11 +95,11 @@ export function SignUpForm() {
               required
             />
           </div>
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
           <Button disabled={isLoading}>
-            {isLoading ? "Creating account..." : "Sign Up"}
+            {isLoading ? (
+              <span className="mr-2 h-4 w-4 animate-spin">&#x27f3;</span>
+            ) : null}
+            Sign Up with Email
           </Button>
         </div>
       </form>

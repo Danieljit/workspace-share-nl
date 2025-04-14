@@ -23,6 +23,20 @@ const TOP_AMENITIES = [
   { icon: "phone", label: "Phone Booth" },
 ]
 
+// Default amenities to show if none are found
+const DEFAULT_AMENITIES = [
+  "High-speed WiFi",
+  "Comfortable Desk",
+  "Coffee & Tea",
+  "Meeting Room Access",
+  "Printer Access",
+  "Air Conditioning",
+  "Kitchen Access",
+  "Restroom Access",
+  "Secure Building",
+  "Business Hours Access"
+]
+
 export default async function SpacePage({ params }: { params: { id: string } }) {
   const space = await db.space.findUnique({
     where: { id: params.id },
@@ -33,22 +47,104 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
     notFound()
   }
 
-  const images = JSON.parse(space.images || "[]") as string[]
+  // Use type assertion to handle both old and new schema formats
+  const spaceAny = space as any
+  
+  // Check if we're dealing with new schema (has 'title' field) or old schema
+  const isNewSchema = 'title' in spaceAny
+  
+  // Map fields based on schema format
+  const spaceName = isNewSchema ? spaceAny.title : spaceAny.name
+  const spaceLocation = isNewSchema 
+    ? `${spaceAny.address || ''}, ${spaceAny.city || ''}`.replace(', ,', ',').replace(/^, |, $/g, '') 
+    : spaceAny.location || 'Unknown Location'
+  const spacePrice = isNewSchema ? spaceAny.pricePerDay : spaceAny.price
+  const spaceType = isNewSchema ? spaceAny.workspaceType : spaceAny.type
+  const spaceCapacity = spaceAny.capacity || 1
+  
+  // Extract coordinates if available in new schema
+  let coordinates = null
+  if (isNewSchema && spaceAny.coordinates) {
+    try {
+      if (typeof spaceAny.coordinates === 'string') {
+        coordinates = JSON.parse(spaceAny.coordinates)
+      } else if (typeof spaceAny.coordinates === 'object') {
+        coordinates = spaceAny.coordinates
+      }
+    } catch (error) {
+      console.error('Error parsing coordinates:', error)
+    }
+  }
+  
+  // Handle images from both schema formats
+  const imagesField = isNewSchema ? spaceAny.photos : spaceAny.images
+  let images: string[] = []
+  
+  try {
+    if (typeof imagesField === 'string') {
+      images = JSON.parse(imagesField || '[]')
+    } else if (Array.isArray(imagesField)) {
+      images = imagesField
+    } else if (imagesField && typeof imagesField === 'object') {
+      images = Object.values(imagesField)
+    }
+  } catch (error) {
+    console.error('Error parsing images:', error)
+    images = []
+  }
   
   // Parse amenities and handle both array and object formats
-  const parsedAmenities = JSON.parse(space.amenities || "[]") 
-  
-  // Convert amenities object to flat array if needed
+  const amenitiesField = isNewSchema ? spaceAny.amenities : spaceAny.amenities
   let amenitiesArray: string[] = []
-  if (Array.isArray(parsedAmenities)) {
-    amenitiesArray = parsedAmenities
-  } else if (typeof parsedAmenities === 'object' && parsedAmenities !== null) {
-    // Extract amenities from categories (furniture, technology, etc.)
-    Object.values(parsedAmenities).forEach(category => {
-      if (Array.isArray(category)) {
-        amenitiesArray = [...amenitiesArray, ...category]
+  
+  console.log('Amenities field:', amenitiesField)
+  
+  try {
+    // Handle string format (JSON string)
+    if (typeof amenitiesField === 'string') {
+      try {
+        const parsed = JSON.parse(amenitiesField || '[]')
+        if (Array.isArray(parsed)) {
+          amenitiesArray = parsed
+        } else if (parsed && typeof parsed === 'object') {
+          // Handle object with categories
+          Object.values(parsed).forEach((category: any) => {
+            if (Array.isArray(category)) {
+              amenitiesArray = [...amenitiesArray, ...category]
+            }
+          })
+        }
+      } catch (e) {
+        console.error('Error parsing amenities string:', e)
       }
-    })
+    }
+    // Handle array format
+    else if (Array.isArray(amenitiesField)) {
+      amenitiesArray = amenitiesField
+    }
+    // Handle object format (JSONB from PostgreSQL)
+    else if (amenitiesField && typeof amenitiesField === 'object') {
+      // If it's a simple object with string values
+      if (Object.values(amenitiesField).some(v => typeof v === 'string')) {
+        amenitiesArray = Object.values(amenitiesField) as string[]
+      }
+      // If it's an object with nested arrays
+      else {
+        Object.values(amenitiesField).forEach((category: any) => {
+          if (Array.isArray(category)) {
+            amenitiesArray = [...amenitiesArray, ...category]
+          }
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Error processing amenities:', error)
+  }
+  
+  // If no amenities were found, use default ones
+  if (amenitiesArray.length === 0) {
+    console.log('Using default amenities')
+    amenitiesArray = DEFAULT_AMENITIES
   }
 
   return (
@@ -57,8 +153,8 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold">{space.name}</h1>
-            <p className="text-muted-foreground mt-1">{space.location}</p>
+            <h1 className="text-3xl font-bold">{spaceName}</h1>
+            <p className="text-muted-foreground mt-1">{spaceLocation}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="icon">
@@ -79,7 +175,7 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
             {images[0] && (
               <Image
                 src={images[0]}
-                alt={`${space.name} main`}
+                alt={`${spaceName} main`}
                 fill
                 className="object-cover hover:opacity-90 transition-opacity cursor-pointer"
               />
@@ -90,7 +186,7 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
             {images[1] && (
               <Image
                 src={images[1]}
-                alt={`${space.name} 2`}
+                alt={`${spaceName} 2`}
                 fill
                 className="object-cover hover:opacity-90 transition-opacity cursor-pointer"
               />
@@ -100,7 +196,7 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
             {images[2] && (
               <Image
                 src={images[2]}
-                alt={`${space.name} 3`}
+                alt={`${spaceName} 3`}
                 fill
                 className="object-cover hover:opacity-90 transition-opacity cursor-pointer"
               />
@@ -108,7 +204,11 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
           </div>
           {/* Map */}
           <div className="col-span-2 relative rounded-br-lg overflow-hidden h-[240px]">
-            <Map location={space.location} className="w-full h-full" />
+            <Map 
+              location={spaceLocation} 
+              className="w-full h-full"
+              coordinates={coordinates} 
+            />
           </div>
         </div>
       </div>
@@ -129,7 +229,7 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
               <div>
                 <h2 className="font-semibold">Workspace by {space.owner.name}</h2>
                 <p className="text-sm text-muted-foreground">
-                  {space.type || "Workspace"} · Up to {space.capacity} people
+                  {spaceType || "Workspace"} u00b7 Up to {spaceCapacity} people
                 </p>
               </div>
             </div>
@@ -154,11 +254,13 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
                   </div>
                 ))}
               </div>
-              <AmenitiesDialog amenities={amenitiesArray.map((amenity, index) => ({
-                icon: TOP_AMENITIES[index]?.icon || "check",
-                label: amenity,
-                category: index < 5 ? "Essential" : "Additional"
-              }))} />
+              <div className="mt-4">
+                <AmenitiesDialog amenities={amenitiesArray.map((amenity, index) => ({
+                  icon: TOP_AMENITIES[Math.min(index, TOP_AMENITIES.length - 1)]?.icon || "check",
+                  label: amenity,
+                  category: index < 5 ? "Essential" : "Additional"
+                }))} />
+              </div>
             </div>
 
             {/* Reviews */}
@@ -171,7 +273,7 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
           {/* Right Column - Booking */}
           <div>
             <div className="sticky top-6">
-              <BookingForm price={space.price} />
+              <BookingForm price={spacePrice} />
             </div>
           </div>
         </div>

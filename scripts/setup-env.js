@@ -12,7 +12,7 @@ const generateEnvFile = () => {
   }
 
   // Create the .env file content
-  const envContent = `DATABASE_URL="${process.env.DATABASE_URL}"
+  let envContent = `DATABASE_URL="${process.env.DATABASE_URL}"
 `;
 
   // Add NEXTAUTH variables if they exist
@@ -26,10 +26,31 @@ const generateEnvFile = () => {
 `;
   }
 
+  // Add Cloudinary variables if they exist
+  if (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
+    envContent += `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}"
+`;
+  }
+  
+  if (process.env.CLOUDINARY_API_KEY) {
+    envContent += `CLOUDINARY_API_KEY="${process.env.CLOUDINARY_API_KEY}"
+`;
+  }
+  
+  if (process.env.CLOUDINARY_API_SECRET) {
+    envContent += `CLOUDINARY_API_SECRET="${process.env.CLOUDINARY_API_SECRET}"
+`;
+  }
+  
+  if (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
+    envContent += `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET="${process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}"
+`;
+  }
+
   // Write the .env file
   try {
     fs.writeFileSync('.env', envContent);
-    console.log('Successfully created .env file for Prisma');
+    console.log('Successfully created .env file for Prisma and Cloudinary');
   } catch (error) {
     console.error('Error creating .env file:', error);
     process.exit(1);

@@ -54,24 +54,58 @@ model Session {
 }
 
 model Space {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  name        String
-  description String
-  type        SpaceType
-  location    String
-  amenities   String?   // JSON string of amenities
-  price       Float
-  capacity    Int
-  images      String?   // JSON string of image URLs
-  floorPlan   String?  // URL to floor plan image
-  features    String?  // JSON string of detailed features
-  availability String? // JSON string of available time slots
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  bookings    Booking[]
-  reviews     Review[]
+  id              String    @id @default(cuid())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  title           String
+  description     String    @db.Text
+  workspaceType   SpaceType
+  
+  // Workspace details (stored as JSON for flexibility)
+  workspaceDetails Json?
+  
+  // Location information
+  address         String
+  city            String
+  postalCode      String
+  country         String    @default("Netherlands")
+  unitNumber      String?
+  coordinates     Json?     // { lat: number, lng: number }
+  directions      String?   @db.Text
+  transportInfo   String?   @db.Text
+  parkingInfo     String?   @db.Text
+  
+  // Building context
+  buildingContext Json?
+  
+  // Amenities (array of amenity IDs)
+  amenities       Json?     // string[]
+  
+  // Photos (array of photo URLs)
+  photos          Json?     // string[]
+  
+  // Availability schedule
+  availability    Json?     // Structured availability by day
+  
+  // Pricing tiers
+  pricePerDay     Float
+  pricePerThreeDays Float?
+  pricePerWeek    Float?
+  pricePerMonth   Float?
+  
+  // Host information
+  hostName        String
+  hostEmail       String?
+  hostPhone       String?
+  preferredContact String?
+  responseTime    String?
+  hostInfo        String?   @db.Text
+  
+  // Relations
+  ownerId         String
+  owner           User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bookings        Booking[]
+  reviews         Review[]
 }
 
 model Booking {

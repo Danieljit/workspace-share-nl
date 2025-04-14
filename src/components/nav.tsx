@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Button } from "./ui/button"
-import { useSession, signOut } from "next-auth/react"
-import { Menu, X } from "lucide-react"
+import { Menu, X, LayoutDashboard } from "lucide-react"
+import { useAuth } from "@/components/providers/auth-provider"
+import { StaplerIcon } from "./ui/stapler-icon"
 
 export function Nav() {
-  const { data: session } = useSession()
+  const { user, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -53,146 +54,157 @@ export function Nav() {
 
   return (
     <nav className="border-b relative z-50">
-      <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
-        {/* Logo - always visible */}
-        <div className="flex items-center flex-1">
-          <Link href="/" className="font-semibold text-xl truncate">
-            <span className="md:inline">WorkSpace Share</span>
-            <span className="md:hidden">WS Share</span>
-          </Link>
-          
-          {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center space-x-4 ml-6">
-            <Link href="/spaces" className="text-sm font-medium text-gray-500 hover:text-gray-900">
-              Browse
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center">
+          {/* Logo - always visible */}
+          <div className="flex items-center flex-1">
+            <Link href="/" className="font-semibold text-xl truncate flex items-center">
+              <StaplerIcon className="text-rose-600 mr-2" size={28} />
+              <span className="md:inline text-[#ee5d5d]">The Red Stapler</span>
+              <span className="md:hidden text-[#ee5d5d]">Red Stapler</span>
             </Link>
-            <Link href="/about" className="text-sm font-medium text-gray-500 hover:text-gray-900">
-              About Us
-            </Link>
-            <Link href="/contact" className="text-sm font-medium text-gray-500 hover:text-gray-900">
-              Contact
-            </Link>
-            <Link href="/test/list" className="text-sm font-medium text-gray-500 hover:text-gray-900">
-              List Space
-            </Link>
+            
+            {/* Desktop Navigation Links */}
+            <div className="hidden md:flex items-center space-x-4 ml-6">
+              <Link href="/spaces" className="text-sm font-medium text-gray-500 hover:text-gray-900">
+                Browse
+              </Link>
+              <Link href="/about" className="text-sm font-medium text-gray-500 hover:text-gray-900">
+                About Us
+              </Link>
+              <Link href="/contact" className="text-sm font-medium text-gray-500 hover:text-gray-900">
+                Contact
+              </Link>
+              <Link href="/test/list" className="text-sm font-medium text-gray-500 hover:text-gray-900">
+                List Space
+              </Link>
+              {user && (
+                <Link href="/dashboard" className="text-sm font-medium text-gray-500 hover:text-gray-900 flex items-center">
+                  <LayoutDashboard className="h-4 w-4 mr-1" />
+                  Dashboard
+                </Link>
+              )}
+            </div>
           </div>
-        </div>
-        
-        {/* Desktop Auth Buttons */}
-        <div className="hidden md:flex items-center space-x-4">
-          {session?.user ? (
-            <>
-              <span className="text-sm text-gray-500">
-                {session.user.name || session.user.email}
-              </span>
-              <Button variant="ghost" onClick={() => signOut()}>
-                Sign Out
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" asChild>
-                <Link href="/signin">Sign In</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/signup">Sign Up</Link>
-              </Button>
-            </>
-          )}
-        </div>
-        
-        {/* Mobile Menu Button */}
-        <div className="md:hidden flex items-center">
-          <button
-            ref={buttonRef}
-            onClick={toggleMenu}
-            className="p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
-            aria-expanded={isMenuOpen}
-            aria-controls="mobile-menu"
-          >
-            <span className="sr-only">{isMenuOpen ? 'Close menu' : 'Open menu'}</span>
-            {isMenuOpen ? (
-              <X className="h-6 w-6" aria-hidden="true" />
+          
+          {/* Desktop Auth Buttons */}
+          <div className="hidden md:flex items-center space-x-4">
+            {user ? (
+              <>
+                <span className="text-sm text-gray-500">
+                  {user.name || user.email}
+                </span>
+                <Button variant="ghost" onClick={() => signOut()}>
+                  Sign Out
+                </Button>
+              </>
             ) : (
-              <Menu className="h-6 w-6" aria-hidden="true" />
+              <>
+                <Button variant="ghost" asChild>
+                  <Link href="/signin">Sign In</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/signup">Sign Up</Link>
+                </Button>
+              </>
             )}
-          </button>
+          </div>
+          
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <button
+              ref={buttonRef}
+              onClick={toggleMenu}
+              className="p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
+            >
+              <span className="sr-only">Open menu</span>
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
       
-      {/* Mobile Menu - Conditional Rendering with Backdrop */}
+      {/* Mobile Menu */}
       {isMenuOpen && (
-        <>
-          {/* Backdrop */}
-          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm md:hidden z-40" aria-hidden="true" />
-          
-          {/* Mobile Menu */}
-          <div 
-            id="mobile-menu"
-            ref={menuRef}
-            className="absolute top-16 inset-x-0 md:hidden bg-white shadow-lg z-50"
-          >
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t">
+        <div 
+          ref={menuRef}
+          className="md:hidden absolute top-16 inset-x-0 z-50 bg-white shadow-lg rounded-b-lg overflow-hidden"
+        >
+          <div className="px-4 pt-4 pb-6 space-y-6">
+            <div className="space-y-2">
               <Link 
                 href="/spaces" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                onClick={toggleMenu}
+                className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Browse
               </Link>
               <Link 
                 href="/about" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                onClick={toggleMenu}
+                className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100"
+                onClick={() => setIsMenuOpen(false)}
               >
                 About Us
               </Link>
               <Link 
                 href="/contact" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                onClick={toggleMenu}
+                className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Contact
               </Link>
               <Link 
                 href="/test/list" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                onClick={toggleMenu}
+                className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100"
+                onClick={() => setIsMenuOpen(false)}
               >
                 List Space
               </Link>
+              {user && (
+                <Link 
+                  href="/dashboard" 
+                  className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100 flex items-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <LayoutDashboard className="h-5 w-5 mr-2" />
+                  Dashboard
+                </Link>
+              )}
             </div>
             
-            {/* Mobile Auth Section */}
-            <div className="pt-4 pb-3 border-t border-gray-200">
-              {session?.user ? (
-                <div className="px-4 space-y-3">
-                  <div className="text-base font-medium text-gray-800">
-                    {session.user.name || session.user.email}
-                  </div>
-                  <button 
+            <div className="pt-4 border-t border-gray-200">
+              {user ? (
+                <div className="space-y-2">
+                  <p className="px-3 py-2 text-sm text-gray-500">
+                    Signed in as {user.name || user.email}
+                  </p>
+                  <button
                     onClick={() => {
                       signOut()
-                      toggleMenu()
+                      setIsMenuOpen(false)
                     }}
-                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-gray-100"
                   >
                     Sign Out
                   </button>
                 </div>
               ) : (
-                <div className="px-4 space-y-3 pb-4">
-                  <Link 
-                    href="/signin" 
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                    onClick={toggleMenu}
+                <div className="space-y-2">
+                  <Link
+                    href="/signin"
+                    className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     Sign In
                   </Link>
-                  <Link 
-                    href="/signup" 
-                    className="block rounded-md text-base font-medium bg-primary text-white hover:bg-primary/90 py-3 px-4 text-center"
-                    onClick={toggleMenu}
+                  <Link
+                    href="/signup"
+                    className="block px-3 py-2 rounded-md text-base font-medium bg-primary text-white hover:bg-primary-dark"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     Sign Up
                   </Link>
@@ -200,7 +212,7 @@ export function Nav() {
               )}
             </div>
           </div>
-        </>
+        </div>
       )}
     </nav>
   )

@@ -68,68 +68,84 @@ const AMENITIES = {
 
 const SPACES = [
   {
-    name: "Amsterdam Central Hub",
-    description: "A comfortable desk in our modern co-working space in the heart of Amsterdam. Perfect for freelancers and remote workers.",
-    type: SpaceType.DESK,
-    location: "Prins Hendrikkade 33, Amsterdam",
-    price: 25.0,
-    capacity: 1,
+    title: "Enschede Innovation Hub",
+    description: "A comfortable desk in our modern co-working space in the heart of Enschede. Perfect for freelancers and remote workers.",
+    workspaceType: SpaceType.DESK,
+    address: "Oude Markt 24",
+    city: "Enschede",
+    postalCode: "7511 GB",
+    pricePerDay: 25.0,
+    hostName: "Sarah Johnson",
   },
   {
-    name: "Rotterdam Port Studio",
-    description: "Bright and inspiring desk space in our creative studio near Rotterdam's iconic port. Great for designers and artists.",
-    type: SpaceType.DESK,
-    location: "Wilhelminakade 123, Rotterdam",
-    price: 30.0,
-    capacity: 1,
+    title: "Hengelo Creative Studio",
+    description: "Bright and inspiring desk space in our creative studio near Hengelo's city center. Great for designers and artists.",
+    workspaceType: SpaceType.DESK,
+    address: "Marktstraat 15",
+    city: "Hengelo",
+    postalCode: "7551 CG",
+    pricePerDay: 30.0,
+    hostName: "Michael Chen",
   },
   {
-    name: "Utrecht Tech Center",
-    description: "High-tech desk setup in the historic city center of Utrecht. Perfect for developers and tech enthusiasts.",
-    type: SpaceType.DESK,
-    location: "Oudegracht 187, Utrecht",
-    price: 35.0,
-    capacity: 1,
+    title: "Oldenzaal Tech Center",
+    description: "High-tech desk setup in the historic city center of Oldenzaal. Perfect for developers and tech enthusiasts.",
+    workspaceType: SpaceType.DESK,
+    address: "Grootestraat 35",
+    city: "Oldenzaal",
+    postalCode: "7571 EK",
+    pricePerDay: 35.0,
+    hostName: "Emily Rodriguez",
   },
   {
-    name: "The Hague Business Hub",
-    description: "Peaceful desk in our quiet zone near the government district. Ideal for focused work and productivity.",
-    type: SpaceType.DESK,
-    location: "Lange Voorhout 44, The Hague",
-    price: 28.0,
-    capacity: 1,
+    title: "Almelo Business Hub",
+    description: "Peaceful desk in our quiet zone near the city center. Ideal for focused work and productivity.",
+    workspaceType: SpaceType.DESK,
+    address: "Grotestraat 97",
+    city: "Almelo",
+    postalCode: "7607 CH",
+    pricePerDay: 28.0,
+    hostName: "Sarah Johnson",
   },
   {
-    name: "Eindhoven Innovation Space",
-    description: "Modern workspace in the technology heart of the Netherlands. Perfect for innovators and tech startups.",
-    type: SpaceType.DESK,
-    location: "High Tech Campus 1, Eindhoven",
-    price: 32.0,
-    capacity: 1,
+    title: "UT Campus Workspace",
+    description: "Modern workspace on the University of Twente campus. Perfect for students and academic professionals.",
+    workspaceType: SpaceType.DESK,
+    address: "Drienerlolaan 5",
+    city: "Enschede",
+    postalCode: "7522 NB",
+    pricePerDay: 32.0,
+    hostName: "Michael Chen",
   },
   {
-    name: "Groningen Student Hub",
-    description: "Vibrant co-working space near the university. Great for students and young professionals.",
-    type: SpaceType.DESK,
-    location: "Grote Markt 29, Groningen",
-    price: 22.0,
-    capacity: 1,
+    title: "Saxion Student Hub",
+    description: "Vibrant co-working space near Saxion University. Great for students and young professionals.",
+    workspaceType: SpaceType.DESK,
+    address: "M.H. Tromplaan 28",
+    city: "Enschede",
+    postalCode: "7513 AB",
+    pricePerDay: 22.0,
+    hostName: "Emily Rodriguez",
   },
   {
-    name: "Delft Design Studio",
-    description: "Creative workspace in the historic city center. Perfect for designers and architects.",
-    type: SpaceType.DESK,
-    location: "Markt 87, Delft",
-    price: 27.0,
-    capacity: 1,
+    title: "Roombeek Design Studio",
+    description: "Creative workspace in the artistic Roombeek district. Perfect for designers and architects.",
+    workspaceType: SpaceType.DESK,
+    address: "Roomweg 167",
+    city: "Enschede",
+    postalCode: "7523 BM",
+    pricePerDay: 27.0,
+    hostName: "Sarah Johnson",
   },
   {
-    name: "Maastricht Cultural Space",
-    description: "Inspiring workspace in a renovated historic building. Ideal for creatives and cultural professionals.",
-    type: SpaceType.DESK,
-    location: "Vrijthof 47, Maastricht",
-    price: 29.0,
-    capacity: 1,
+    title: "Haaksbergen Rural Office",
+    description: "Peaceful workspace in a renovated farmhouse. Ideal for those seeking a quiet work environment away from the city.",
+    workspaceType: SpaceType.DESK,
+    address: "Markt 3",
+    city: "Haaksbergen",
+    postalCode: "7481 HS",
+    pricePerDay: 29.0,
+    hostName: "Michael Chen",
   }
 ]
 
@@ -155,18 +171,22 @@ async function main() {
 
   // Create spaces
   await Promise.all(
-    SPACES.map((space, index) =>
-      prisma.space.create({
+    SPACES.map((space, index) => {
+      // Find the host by name or fall back to using the index
+      const host = hosts.find((h) => h.name === space.hostName) || hosts[index % hosts.length];
+      
+      return prisma.space.create({
         data: {
           ...space,
-          images: JSON.stringify(WORKSPACE_IMAGES[index % WORKSPACE_IMAGES.length]),
+          photos: JSON.stringify(WORKSPACE_IMAGES[index % WORKSPACE_IMAGES.length]),
           amenities: JSON.stringify(
             index % 2 === 0 ? AMENITIES.premium : AMENITIES.basic
           ),
-          ownerId: hosts[index % hosts.length].id,
+          coordinates: JSON.stringify({ lat: 52.2 + (Math.random() * 0.1), lng: 6.8 + (Math.random() * 0.1) }),
+          ownerId: host.id,
         },
       })
-    )
+    })
   )
 }
 
