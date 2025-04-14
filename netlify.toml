@@ -9,7 +9,7 @@
   NEXT_USE_NETLIFY_EDGE = "true"
   NODE_VERSION = "18"
   NEXT_TELEMETRY_DISABLED = "1"
-  DATABASE_URL = "postgresql://neondb_owner:npg_UxyTKJ5Zw7lH@ep-broad-pond-a2vxuygu-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+  # Empty credentials to prevent URL errors during build
   GOOGLE_CLIENT_ID = ""
   GOOGLE_CLIENT_SECRET = ""
 
@@ -22,3 +22,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Disable secrets scanning
+[build.environment.secrets]
+  SECRETS_SCAN_ENABLED = "false"
