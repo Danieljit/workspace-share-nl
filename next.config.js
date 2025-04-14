@@ -14,18 +14,13 @@ const nextConfig = {
   },
   // Configure static page generation
   experimental: {
-    // Prevent static generation of auth pages to avoid URL errors
-    serverActions: true,
+    // Use correct format for serverActions
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
   },
   // Configure page generation options
   output: 'standalone',
-  // Disable static generation for auth pages
-  exportPathMap: async function (defaultPathMap, { dev, dir, outDir, distDir, buildId }) {
-    // Remove auth pages from static generation
-    delete defaultPathMap['/signin'];
-    delete defaultPathMap['/signup'];
-    return defaultPathMap;
-  },
 }
 
 module.exports = nextConfig

@@ -5,6 +5,7 @@ import { StaplerIcon } from "@/components/ui/stapler-icon"
 
 // Force dynamic rendering to prevent URL errors during build
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export const metadata: Metadata = {
   title: "Sign Up - WorkSpace Share",
