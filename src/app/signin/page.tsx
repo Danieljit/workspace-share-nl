@@ -3,6 +3,9 @@ import Link from "next/link"
 import { SignInForm } from "@/components/auth/signin-form"
 import { StaplerIcon } from "@/components/ui/stapler-icon"
 
+// Force dynamic rendering to prevent URL errors during build
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Sign In - WorkSpace Share",
   description: "Sign in to your account",
