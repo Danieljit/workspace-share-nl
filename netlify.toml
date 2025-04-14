@@ -12,6 +12,8 @@
   # Empty credentials to prevent URL errors during build
   GOOGLE_CLIENT_ID = ""
   GOOGLE_CLIENT_SECRET = ""
+  # Disable secrets scanning
+  SECRETS_SCAN_ENABLED = "false"
 
 # Prevent asset optimization which can break Next.js assets
 [build.processing]
@@ -22,7 +24,3 @@
   from = "/*"
   to = "/index.html"
   status = 200
-
-# Disable secrets scanning
-[build.environment.secrets]
-  SECRETS_SCAN_ENABLED = "false"
