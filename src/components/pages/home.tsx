@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Space, User } from "@prisma/client"
 import { SearchBar } from "@/components/search-bar"
-import { QuickFilters } from "@/components/spaces/quick-filters"
+import { QuickFilter } from "@/components/ui/quick-filter"
 import { FeaturedSpaces } from "@/components/spaces/featured-spaces"
 import { Footer } from "@/components/layout/footer"
 import { HomeTestimonials } from "@/components/sections/home-testimonials"
@@ -91,9 +91,15 @@ export function HomePage({ spaces }: HomePageProps) {
       </section>
 
       {/* Quick Filters */}
-      <section className="container mx-auto px-4 py-12">
-        <h2 className="text-2xl font-semibold mb-6">Quick Filters</h2>
-        <QuickFilters onFilterClick={handleFilterClick} activeFilters={activeFilters} />
+      <section className="container mx-auto px-4 py-8">
+        <QuickFilter
+          onFilterChange={(filterId) => {
+            handleFilterClick(filterId);
+            // If it's a workspace type, we could also update the workspace type select
+            // or navigate to filtered results
+          }}
+          className="mb-4"
+        />
       </section>
 
       {/* Featured Spaces */}
