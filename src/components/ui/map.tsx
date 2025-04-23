@@ -98,34 +98,37 @@ const MapComponent = forwardRef<MapRef, MapProps>(({ location, locations = [], c
           const L = await import('leaflet');
           window.L = L;
           
-          // Import MarkerCluster
-          try {
-            await import('leaflet.markercluster');
-          } catch (error) {
-            console.error('Error loading MarkerCluster:', error);
-          }
-          
           // Add Leaflet CSS manually instead of importing it
           const linkElement = document.createElement('link');
           linkElement.rel = 'stylesheet';
           linkElement.href = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css';
           document.head.appendChild(linkElement);
           
-          // Add MarkerCluster CSS
-          const clusterCss = document.createElement('link');
-          clusterCss.rel = 'stylesheet';
-          clusterCss.href = 'https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css';
-          document.head.appendChild(clusterCss);
-          
-          const clusterDefaultCss = document.createElement('link');
-          clusterDefaultCss.rel = 'stylesheet';
-          clusterDefaultCss.href = 'https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css';
-          document.head.appendChild(clusterDefaultCss);
+          // Import MarkerCluster with better error handling
+          try {
+            // First add MarkerCluster CSS
+            const clusterCss = document.createElement('link');
+            clusterCss.rel = 'stylesheet';
+            clusterCss.href = 'https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css';
+            document.head.appendChild(clusterCss);
+            
+            const clusterDefaultCss = document.createElement('link');
+            clusterDefaultCss.rel = 'stylesheet';
+            clusterDefaultCss.href = 'https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css';
+            document.head.appendChild(clusterDefaultCss);
+            
+            // Then import the MarkerCluster script
+            await import('leaflet.markercluster');
+            console.log('MarkerCluster loaded successfully');
+          } catch (error) {
+            console.error('Error loading MarkerCluster:', error instanceof Error ? error.message : 'Unknown error');
+            // Continue without clustering functionality
+          }
           
           // Force a re-render
           setLeafletLoaded(true);
         } catch (error) {
-          console.error('Error loading Leaflet:', error);
+          console.error('Error loading Leaflet:', error instanceof Error ? error.message : 'Unknown error');
         }
       } else if (window.L) {
         setLeafletLoaded(true);
@@ -169,16 +172,24 @@ const MapComponent = forwardRef<MapRef, MapProps>(({ location, locations = [], c
     
     // Create marker cluster group if available
     if (window.L.markerClusterGroup) {
-      markerClusterRef.current = window.L.markerClusterGroup({
-        showCoverageOnHover: true,
-        zoomToBoundsOnClick: true,
-        spiderfyOnMaxZoom: true,
-        removeOutsideVisibleBounds: true,
-        disableClusteringAtZoom: 18, // Show individual markers at high zoom levels
-        maxClusterRadius: 80 // Distance in pixels within which markers will be clustered
-      });
-      
-      mapInstanceRef.current.addLayer(markerClusterRef.current);
+      try {
+        markerClusterRef.current = window.L.markerClusterGroup({
+          showCoverageOnHover: true,
+          zoomToBoundsOnClick: true,
+          spiderfyOnMaxZoom: true,
+          removeOutsideVisibleBounds: true,
+          disableClusteringAtZoom: 18, // Show individual markers at high zoom levels
+          maxClusterRadius: 80 // Distance in pixels within which markers will be clustered
+        });
+        
+        mapInstanceRef.current.addLayer(markerClusterRef.current);
+        console.log('MarkerCluster group created successfully');
+      } catch (error) {
+        console.error('Error creating marker cluster group:', error instanceof Error ? error.message : 'Unknown error');
+        // Continue without clustering
+      }
+    } else {
+      console.warn('MarkerClusterGroup not available - markers will not be clustered');
     }
 
     return () => {

@@ -34,18 +34,25 @@ export function WorkspaceDetailsStep({ formData, updateFormData }: WorkspaceDeta
   
   const renderWorkspaceTypeDetails = () => {
     switch (formData.workspaceType) {
-      case "DESK":
-        return renderDeskDetails()
-      case "OFFICE":
-        return renderOfficeDetails()
+      case "SINGLE_DESK":
+        return renderSingleDeskDetails()
+      case "PRIVATE_OFFICE":
+        return renderPrivateOfficeDetails()
       case "MEETING_ROOM":
         return renderMeetingRoomDetails()
+      case "CO_WORKING":
+        return renderCoWorkingDetails()
+      // Backward compatibility with old data
+      case "DESK":
+        return renderSingleDeskDetails()
+      case "OFFICE":
+        return renderPrivateOfficeDetails()
       default:
         return null
     }
   }
   
-  const renderDeskDetails = () => {
+  const renderSingleDeskDetails = () => {
     return (
       <div className="space-y-6">
         <div>
@@ -125,7 +132,7 @@ export function WorkspaceDetailsStep({ formData, updateFormData }: WorkspaceDeta
     )
   }
   
-  const renderOfficeDetails = () => {
+  const renderPrivateOfficeDetails = () => {
     return (
       <div className="space-y-6">
         <div>
@@ -209,6 +216,105 @@ export function WorkspaceDetailsStep({ formData, updateFormData }: WorkspaceDeta
     )
   }
   
+  const renderCoWorkingDetails = () => {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium mb-4">Co-Working Space Details</h3>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="coworkingCapacity">Total Capacity</Label>
+              <Input
+                id="coworkingCapacity"
+                type="number"
+                placeholder="e.g., 20"
+                value={details.capacity || ""}
+                onChange={(e) => updateDetails("capacity", e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">Maximum number of people that can work in this space</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Available Workspace Types</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="hotDesks" 
+                    checked={details.hasHotDesks || false}
+                    onCheckedChange={(checked) => updateDetails("hasHotDesks", checked)}
+                  />
+                  <Label htmlFor="hotDesks">Hot Desks</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="dedicatedDesks" 
+                    checked={details.hasDedicatedDesks || false}
+                    onCheckedChange={(checked) => updateDetails("hasDedicatedDesks", checked)}
+                  />
+                  <Label htmlFor="dedicatedDesks">Dedicated Desks</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="privateBooths" 
+                    checked={details.hasPrivateBooths || false}
+                    onCheckedChange={(checked) => updateDetails("hasPrivateBooths", checked)}
+                  />
+                  <Label htmlFor="privateBooths">Private Booths</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="smallMeetingRooms" 
+                    checked={details.hasSmallMeetingRooms || false}
+                    onCheckedChange={(checked) => updateDetails("hasSmallMeetingRooms", checked)}
+                  />
+                  <Label htmlFor="smallMeetingRooms">Small Meeting Rooms</Label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <h3 className="text-lg font-medium mb-4">Amenities</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="wifi" 
+                checked={details.hasWifi || false}
+                onCheckedChange={(checked) => updateDetails("hasWifi", checked)}
+              />
+              <Label htmlFor="wifi">High-Speed WiFi</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="kitchen" 
+                checked={details.hasKitchen || false}
+                onCheckedChange={(checked) => updateDetails("hasKitchen", checked)}
+              />
+              <Label htmlFor="kitchen">Kitchen/Cafe Area</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="printers" 
+                checked={details.hasPrinters || false}
+                onCheckedChange={(checked) => updateDetails("hasPrinters", checked)}
+              />
+              <Label htmlFor="printers">Printers/Scanners</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="events" 
+                checked={details.hasEvents || false}
+                onCheckedChange={(checked) => updateDetails("hasEvents", checked)}
+              />
+              <Label htmlFor="events">Community Events</Label>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const renderMeetingRoomDetails = () => {
     return (
       <div className="space-y-6">

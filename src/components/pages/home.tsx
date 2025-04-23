@@ -12,6 +12,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { WorkspaceTypeSelect } from "@/components/spaces/workspace-type-select"
 
 interface HomePageProps {
   spaces: (Space & { owner: User })[]
@@ -38,28 +39,52 @@ export function HomePage({ spaces }: HomePageProps) {
   return (
     <main>
       {/* Hero Section */}
-      <section className="relative h-[500px] flex items-center justify-center">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-black to-gray-900 opacity-90" />
-          <img
-            src="https://images.pexels.com/photos/7070/space-desk-workspace-coworking.jpg"
-            alt="Workspace"
-            className="w-full h-full object-cover"
-          />
-        </div>
-        <div className="relative container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center space-y-8">
-            <h1 className="text-4xl font-extrabold sm:text-5xl md:text-6xl">
-              The Red Stapler
-            </h1>
-            <p className="text-xl text-white/90">
-              And yeah, we're gonna need you to come in on Saturday.
-            </p>
-            <div className="max-w-2xl mx-auto">
-              <SearchBar
-                onSearch={handleSearch}
-                placeholder="Search by location, amenities, or workspace type..."
-              />
+      <section className="relative min-h-[600px] bg-white">
+        <div className="container mx-auto px-4 py-12">
+          <div className="relative h-[600px] rounded-xl overflow-hidden shadow-2xl">
+            {/* Background Image */}
+            <img
+              src="https://images.pexels.com/photos/7070/space-desk-workspace-coworking.jpg"
+              alt="Modern Workspace"
+              className="w-full h-full object-cover"
+            />
+            
+            {/* Overlay for text contrast */}
+            <div className="absolute inset-0 bg-black/20"></div>
+            
+            {/* Content Box - Positioned differently based on screen size */}
+            <div className="absolute inset-0 flex items-center">
+              {/* On smaller screens (below lg), this will be a full-width box at the bottom */}
+              <div className="w-full lg:w-1/3 p-8 bg-white/90 backdrop-blur-sm lg:h-full flex flex-col justify-center space-y-8 absolute bottom-0 lg:relative lg:bottom-auto">
+                <div className="space-y-4">
+                  <h1 className="text-3xl font-extrabold sm:text-4xl md:text-5xl text-gray-900">
+                    It's work, but better
+                  </h1>
+                  <p className="text-lg text-gray-600">
+                    Find the perfect workspace that fits your needs and style
+                  </p>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <SearchBar
+                      onSearch={handleSearch}
+                      placeholder="Enter location..."
+                    />
+                    
+                    <WorkspaceTypeSelect 
+                      onSelect={(type) => console.log(type)}
+                    />
+                    
+                    <Button 
+                      className="w-full py-6 text-lg rounded-xl" 
+                      onClick={() => handleSearch('all')}
+                    >
+                      Find Workspaces
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -273,7 +273,7 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
           {/* Right Column - Booking */}
           <div>
             <div className="sticky top-6">
-              <BookingForm price={spacePrice} />
+              <BookingForm price={spacePrice} spaceId={params.id} />
             </div>
           </div>
         </div>

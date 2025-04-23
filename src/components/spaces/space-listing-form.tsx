@@ -144,9 +144,10 @@ export function SpaceListingForm() {
             required
           >
             <option value="">Select Type</option>
-            <option value="DESK">Desk</option>
-            <option value="OFFICE">Office</option>
+            <option value="SINGLE_DESK">Single Desk</option>
+            <option value="PRIVATE_OFFICE">Private Office</option>
             <option value="MEETING_ROOM">Meeting Room</option>
+            <option value="CO_WORKING">Co-Working Space</option>
           </select>
           <Input
             id="location"

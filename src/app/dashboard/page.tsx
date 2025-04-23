@@ -10,6 +10,7 @@ import Link from "next/link"
 import { useAuth } from "@/components/providers/auth-provider"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
+import { PlaceholderImage } from "@/components/ui/placeholder-image"
 
 export default function DashboardPage() {
   const [listings, setListings] = useState<any[]>([])
@@ -119,12 +120,23 @@ export default function DashboardPage() {
               <Card key={listing.id} className="overflow-hidden">
                 {/* Make the image clickable to view details */}
                 <Link href={`/spaces/${listing.id}`}>
-                  {listing.photos && listing.photos.length > 0 && (
+                  {listing.photos && listing.photos.length > 0 ? (
                     <div className="h-48 overflow-hidden hover:opacity-90 transition-opacity cursor-pointer">
                       <img 
                         src={listing.photos[0].preview} 
                         alt={listing.title} 
                         className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-48 overflow-hidden hover:opacity-90 transition-opacity cursor-pointer">
+                      <PlaceholderImage
+                        type={listing.workspaceType === "OFFICE" ? "office" : 
+                              listing.workspaceType === "DESK" ? "desk" : 
+                              listing.workspaceType === "MEETING_ROOM" ? "meeting" : 
+                              listing.workspaceType === "EVENT_SPACE" ? "event" : "generic"}
+                        fill
+                        alt={listing.title}
                       />
                     </div>
                   )}

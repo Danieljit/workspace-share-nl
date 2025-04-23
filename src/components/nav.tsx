@@ -60,12 +60,12 @@ export function Nav() {
           <div className="flex items-center flex-1">
             <Link href="/" className="font-semibold text-xl truncate flex items-center">
               <StaplerIcon className="text-rose-600 mr-2" size={28} />
-              <span className="md:inline text-[#ee5d5d]">The Red Stapler</span>
-              <span className="md:hidden text-[#ee5d5d]">Red Stapler</span>
+              <span className="hidden lg:inline text-[#ee5d5d]">The Red Stapler</span>
+              <span className="lg:hidden text-[#ee5d5d]">Red Stapler</span>
             </Link>
             
             {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center space-x-4 ml-6">
+            <div className="hidden lg:flex items-center space-x-4 ml-6">
               <Link href="/spaces" className="text-sm font-medium text-gray-500 hover:text-gray-900">
                 Browse
               </Link>
@@ -88,7 +88,7 @@ export function Nav() {
           </div>
           
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-4">
             {user ? (
               <>
                 <span className="text-sm text-gray-500">
@@ -111,7 +111,7 @@ export function Nav() {
           </div>
           
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <button
               ref={buttonRef}
               onClick={toggleMenu}
@@ -132,7 +132,7 @@ export function Nav() {
       {isMenuOpen && (
         <div 
           ref={menuRef}
-          className="md:hidden absolute top-16 inset-x-0 z-50 bg-white shadow-lg rounded-b-lg overflow-hidden"
+          className="lg:hidden absolute top-16 inset-x-0 z-50 bg-white shadow-lg rounded-b-lg overflow-hidden"
         >
           <div className="px-4 pt-4 pb-6 space-y-6">
             <div className="space-y-2">
