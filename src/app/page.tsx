@@ -3,10 +3,13 @@ import { HomePage } from "@/components/pages/home"
 
 export default async function Home() {
   const spaces = await db.space.findMany({
-    take: 6,
+    take: 24, // Increased from 6 to 24 to show more workspaces
     include: {
       owner: true,
     },
+    orderBy: {
+      createdAt: 'desc' // Show newest workspaces first
+    }
   })
 
   // Transform spaces to match the expected format in the FeaturedSpaces component

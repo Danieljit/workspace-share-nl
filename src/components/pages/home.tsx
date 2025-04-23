@@ -13,6 +13,11 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { WorkspaceTypeSelect } from "@/components/spaces/workspace-type-select"
+import { SearchIcon } from "@/components/ui/search"
+import { HomeIcon } from "@/components/ui/home"
+import { MapPinIcon } from "@/components/ui/map-pin"
+import { CoffeeIcon } from "@/components/ui/coffee"
+import { CalendarDaysIcon } from "@/components/ui/calendar-days"
 
 interface HomePageProps {
   spaces: (Space & { owner: User })[]
@@ -80,6 +85,7 @@ export function HomePage({ spaces }: HomePageProps) {
                       className="w-full py-6 text-lg rounded-xl" 
                       onClick={() => handleSearch('all')}
                     >
+                      <MapPinIcon className="mr-2" size={20} />
                       Find Workspaces
                     </Button>
                   </div>
@@ -104,16 +110,22 @@ export function HomePage({ spaces }: HomePageProps) {
 
       {/* Featured Spaces */}
       <section className="container mx-auto px-4">
+        <div className="flex items-center mb-6">
+          <MapPinIcon size={28} className="mr-2 text-primary" />
+          <h2 className="text-2xl font-semibold">Workspaces Near You</h2>
+        </div>
         <FeaturedSpaces spaces={spaces} />
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 bg-muted/30">
+      <section className="bg-gray-50 py-16 mt-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-2">What People Say</h2>
-          <p className="text-muted-foreground mb-8">
-            Hear from our satisfied workspace users
-          </p>
+          <div className="flex items-center justify-center mb-12">
+            <CalendarDaysIcon size={32} className="mr-3 text-primary" />
+            <h2 className="text-3xl font-bold text-center">
+              What Our Users Say
+            </h2>
+          </div>
           <HomeTestimonials testimonials={testimonials} />
         </div>
       </section>

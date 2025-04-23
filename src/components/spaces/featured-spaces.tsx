@@ -12,8 +12,7 @@ interface FeaturedSpacesProps {
 export function FeaturedSpaces({ spaces }: FeaturedSpacesProps) {
   return (
     <section>
-      <h2 className="text-2xl font-semibold mb-6">Featured Workspaces</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {spaces.map((space) => {
           // Handle both old and new schema
           const isNewSchema = 'title' in space;
@@ -62,8 +61,8 @@ export function FeaturedSpaces({ spaces }: FeaturedSpacesProps) {
           
           return (
             <Link key={space.id} href={`/spaces/${space.id}`}>
-              <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="aspect-[4/3] relative">
+              <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
+                <div className="aspect-[16/9] relative">
                   {images[0] && (
                     <Image
                       src={images[0]}
@@ -73,25 +72,25 @@ export function FeaturedSpaces({ spaces }: FeaturedSpacesProps) {
                     />
                   )}
                 </div>
-                <CardContent className="p-4">
+                <CardContent className="p-3">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold">{name || 'Unnamed Space'}</h3>
-                      <p className="text-base text-muted-foreground line-clamp-1">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold truncate">{name || 'Unnamed Space'}</h3>
+                      <p className="text-xs text-muted-foreground line-clamp-1">
                         {location || 'Unknown Location'}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold">${Math.round(price || 0)}</p>
-                      <p className="text-base text-muted-foreground">per day</p>
+                    <div className="text-right ml-2 flex-shrink-0">
+                      <p className="text-sm font-semibold">${Math.round(price || 0)}</p>
+                      <p className="text-xs text-muted-foreground">per day</p>
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="p-4 pt-0 flex flex-wrap gap-2">
-                  {amenities.slice(0, 3).map((amenity, index) => (
+                <CardFooter className="p-3 pt-0 flex flex-wrap gap-1">
+                  {amenities.slice(0, 2).map((amenity, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-sm font-medium text-gray-800"
+                      className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800"
                     >
                       {amenity}
                     </span>
