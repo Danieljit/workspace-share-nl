@@ -11,8 +11,16 @@ const generateEnvFile = () => {
     process.exit(1);
   }
 
+  // Ensure DATABASE_URL starts with postgresql:// or postgres://
+  let dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
+    console.error('DATABASE_URL must start with postgresql:// or postgres://');
+    console.error('Current value:', dbUrl);
+    process.exit(1);
+  }
+
   // Create the .env file content
-  let envContent = `DATABASE_URL="${process.env.DATABASE_URL}"
+  let envContent = `DATABASE_URL="${dbUrl}"
 `;
 
   // Add NEXTAUTH variables if they exist

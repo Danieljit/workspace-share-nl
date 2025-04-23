@@ -2,6 +2,7 @@
   command = "node scripts/setup-env.js && npm ci && npx prisma generate && npm run build"
   publish = ".next"
 
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
@@ -19,7 +20,14 @@
 [build.processing]
   skip_processing = true
 
-# Handle client-side routing
+# Force trailing slashes
+[[redirects]]
+  from = "/[path]"
+  to = "/[path]/"
+  status = 301
+  force = false
+
+# Handle Next.js rewrites and redirects
 [[redirects]]
   from = "/*"
   to = "/index.html"
