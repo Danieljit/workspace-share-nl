@@ -179,6 +179,63 @@ The UI is built using a combination of Radix UI primitives and custom components
 - Toast notifications
 - Tabs and multi-step interfaces
 
+## ✨ Animated Icons
+
+The platform features a collection of beautifully crafted animated icons to enhance the user experience. These icons are interactive and animate on hover or can be programmatically controlled.
+
+### Available Icons
+
+- **Workspace Related**: Coffee, Home, Map-pin, Wifi
+- **User Related**: User, Settings
+- **Booking Related**: Calendar-days, Calendar-check
+- **Interaction**: Search, Bell, Message-square
+- **Misc**: Airplane, Cart, Square-activity, Smartphone-charging
+
+### Using Animated Icons
+
+To use an animated icon in your component:
+
+```tsx
+import { CoffeeIcon } from "@/components/ui/coffee";
+
+// Basic usage with hover animation
+<CoffeeIcon className="h-6 w-6" />
+
+// Controlled animation with ref
+import { useRef } from "react";
+import type { CoffeeIconHandle } from "@/components/ui/coffee";
+
+function MyComponent() {
+  const iconRef = useRef<CoffeeIconHandle>(null);
+  
+  const startAnimation = () => {
+    iconRef.current?.startAnimation();
+  };
+  
+  const stopAnimation = () => {
+    iconRef.current?.stopAnimation();
+  };
+  
+  return (
+    <div>
+      <CoffeeIcon ref={iconRef} size={32} />
+      <button onClick={startAnimation}>Start Animation</button>
+      <button onClick={stopAnimation}>Stop Animation</button>
+    </div>
+  );
+}
+```
+
+### Adding New Icons
+
+To add more animated icons to the library:
+
+```bash
+npx shadcn@latest add "https://icons.pqoqubbw.dev/c/[icon-name].json"
+```
+
+When prompted, select "Use --force" to handle React 19 peer dependency issues.
+
 ## 📱 Responsive Design
 
 The application is fully responsive and works on devices of all sizes. Tailwind's responsive utilities are used throughout the codebase:
