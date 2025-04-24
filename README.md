@@ -256,7 +256,9 @@ State management is handled using React's built-in hooks:
 
 ## 🚢 Deployment
 
-The application can be deployed to any platform that supports Next.js, such as Vercel or Netlify:
+The application can be deployed to any platform that supports Next.js, such as Vercel or Netlify.
+
+### Local Build
 
 1. **Build the application**
 
@@ -269,6 +271,41 @@ npm run build
 ```bash
 npm run start
 ```
+
+### Netlify Deployment
+
+The project includes a `netlify.toml` configuration file for easy deployment to Netlify.
+
+1. **Prerequisites**
+   - Netlify account with a site already set up
+   - GitHub repository connected to Netlify
+   - Environment variables configured in Netlify dashboard
+
+2. **Required Environment Variables**
+   - `DATABASE_URL`: PostgreSQL connection string (must start with `postgresql://` or `postgres://`)
+   - `NEXTAUTH_SECRET`: Secret for NextAuth.js session encryption
+   - `NEXTAUTH_URL`: Your production URL (e.g., `https://independesk.nl`)
+   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: For Google OAuth
+   - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`: For image uploads
+   - `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`: Cloudinary upload preset name
+   - `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: For payments
+
+3. **Deployment Process**
+   - Push changes to your GitHub repository
+   - Netlify will automatically build and deploy your site
+   - Check the deployment logs for any errors
+
+4. **Common Deployment Issues**
+   - **Missing Dependencies**: Ensure all dependencies (like `motion` and `framer-motion`) are in package.json
+   - **Missing Files**: Make sure all components (especially new UI components like animated icons) are committed to GitHub
+   - **Environment Variables**: Verify DATABASE_URL starts with `postgresql://` or `postgres://`
+   - **Build Errors**: Check Netlify logs for specific error messages
+
+5. **Manual Deployment**
+   - Install Netlify CLI: `npm install -g netlify-cli`
+   - Login: `netlify login`
+   - Link your site: `netlify link --id your-site-id`
+   - Deploy: `netlify deploy --prod`
 
 ## 📄 License
 
