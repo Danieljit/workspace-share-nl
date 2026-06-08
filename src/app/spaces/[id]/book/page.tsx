@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -28,14 +28,24 @@ export default function BookingConfirmationPage() {
   const [space, setSpace] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [clientSecret, setClientSecret] = useState("");
-  
+
+  // Guards the one-time booking + payment-intent setup so an effect re-fire,
+  // React StrictMode double-invoke, or remount can't create duplicate bookings.
+  // (The server POST /api/bookings is also idempotent as a second line of defense.)
+  const initiatedRef = useRef(false);
+
   useEffect(() => {
     // Redirect if no dates selected
     if (!startDate || !endDate || !totalDays || !totalPrice) {
       router.push(`/spaces/${params.id}`);
       return;
     }
-    
+
+    if (initiatedRef.current) {
+      return;
+    }
+    initiatedRef.current = true;
+
     // Fetch space details
     const fetchSpace = async () => {
       try {
@@ -45,17 +55,34 @@ export default function BookingConfirmationPage() {
         }
         const data = await response.json();
         setSpace(data);
-        
-        // Create payment intent
+
+        // Single, idempotent flow:
+        //   1. create a PENDING booking (server computes the authoritative price)
+        //   2. create a PaymentIntent for that booking id
+        //   3. confirm payment via Stripe Elements (PaymentForm)
+        // The price shown here is a DISPLAY estimate only.
         try {
-          const totalAmount = parseFloat(totalPrice || '0') + (parseFloat(totalPrice || '0') * 0.1); // Add service fee
-          const { clientSecret } = await createPaymentIntent({
-            spaceId: params.id,
-            startDate,
-            endDate,
-            totalAmount,
+          const bookingResponse = await fetch('/api/bookings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              spaceId: params.id,
+              startDate,
+              endDate,
+            }),
           });
-          
+
+          if (!bookingResponse.ok) {
+            const errorData = await bookingResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Could not reserve these dates.');
+          }
+
+          const booking = await bookingResponse.json();
+
+          const { clientSecret } = await createPaymentIntent({
+            bookingId: booking.id,
+          });
+
           setClientSecret(clientSecret);
         } catch (paymentError) {
           console.error('Payment intent creation error:', paymentError);

@@ -10,17 +10,15 @@ export const getStripe = () => {
   return stripePromise;
 };
 
-// Helper function to create a payment intent
+// Helper function to create a payment intent for an existing PENDING booking.
+// The amount is recomputed authoritatively on the server from the booking; the
+// optional totalAmount here is only an estimate the server may sanity-check.
 export const createPaymentIntent = async ({
-  spaceId,
-  startDate,
-  endDate,
+  bookingId,
   totalAmount,
 }: {
-  spaceId: string;
-  startDate: string;
-  endDate: string;
-  totalAmount: number;
+  bookingId: string;
+  totalAmount?: number;
 }) => {
   try {
     const response = await fetch('/api/payments/create-intent', {
@@ -29,9 +27,7 @@ export const createPaymentIntent = async ({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        spaceId,
-        startDate,
-        endDate,
+        bookingId,
         totalAmount,
       }),
     });
