@@ -1,5 +1,13 @@
-import { auth } from "@/lib/auth"
+import NextAuth from "next-auth"
 import { NextResponse } from "next/server"
+import { authConfig } from "@/auth.config"
+
+/**
+ * Edge-safe auth instance built from the base config (no Prisma adapter / no
+ * Credentials provider — those use Node APIs and can't run on the Edge). The
+ * JWT session lets middleware verify the logged-in user without a DB call.
+ */
+const { auth } = NextAuth(authConfig)
 
 /**
  * Protects authenticated areas of the app. Unauthenticated users hitting a
