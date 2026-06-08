@@ -1,6 +1,25 @@
 import { db } from "@/lib/db"
 import { NextResponse } from "next/server"
-import { SpaceType } from "@prisma/client"
+import { Prisma, SpaceType } from "@prisma/client"
+import { requireUser, requireSpaceOwner, apiErrorResponse } from "@/lib/session"
+
+export const dynamic = "force-dynamic"
+
+const VALID_SPACE_TYPES = new Set<string>(Object.values(SpaceType))
+
+/** Stringify a value for a JSON column, accepting either an object/array or a pre-stringified value. */
+function toJsonColumn(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value === "string") return value
+  return JSON.stringify(value)
+}
+
+/** Parse a numeric field, returning the fallback for missing or non-finite values. */
+function numberOr(value: unknown, fallback: number | null): number | null {
+  if (value === undefined || value === null || value === "") return fallback
+  const n = Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -12,107 +31,100 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             id: true,
             name: true,
             email: true,
-            image: true
-          }
+            image: true,
+          },
         },
       },
     })
 
     if (!space) {
-      return NextResponse.json({ error: 'Space not found' }, { status: 404 })
+      return NextResponse.json({ error: "Space not found" }, { status: 404 })
     }
 
     return NextResponse.json(space)
   } catch (error) {
-    console.error('Error fetching space:', error)
-    return NextResponse.json({ error: 'Failed to fetch space' }, { status: 500 })
+    console.error("Error fetching space:", error)
+    return NextResponse.json({ error: "Failed to fetch space" }, { status: 500 })
   }
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
+    const user = await requireUser()
+    const existingSpace = await requireSpaceOwner(params.id, user.id)
+
     const json = await req.json()
 
-    // Find the space first to make sure it exists
-    const existingSpace = await db.space.findUnique({
-      where: { id: params.id },
-    })
+    const data: Prisma.SpaceUpdateInput = {
+      // Basic information
+      title: json.title || json.name || existingSpace.title,
+      description: json.description || existingSpace.description,
+      workspaceType:
+        typeof json.workspaceType === "string" &&
+        VALID_SPACE_TYPES.has(json.workspaceType)
+          ? (json.workspaceType as SpaceType)
+          : existingSpace.workspaceType,
 
-    if (!existingSpace) {
-      return NextResponse.json({ error: 'Space not found' }, { status: 404 })
+      // Location information
+      address: json.address || existingSpace.address,
+      city: json.city || existingSpace.city,
+      postalCode: json.postalCode || existingSpace.postalCode,
+      coordinates: toJsonColumn(json.coordinates) ?? existingSpace.coordinates ?? Prisma.JsonNull,
+      directions: json.directions ?? existingSpace.directions,
+      transportInfo: json.transportInfo ?? existingSpace.transportInfo,
+      parkingInfo: json.parkingInfo ?? existingSpace.parkingInfo,
+
+      // Building and workspace details
+      buildingContext:
+        toJsonColumn(json.buildingContext) ?? existingSpace.buildingContext ?? Prisma.JsonNull,
+      workspaceDetails:
+        toJsonColumn(json.workspaceDetails) ?? existingSpace.workspaceDetails ?? Prisma.JsonNull,
+
+      // Amenities and photos
+      amenities: toJsonColumn(json.amenities) ?? existingSpace.amenities ?? Prisma.JsonNull,
+      photos: toJsonColumn(json.photos) ?? existingSpace.photos ?? Prisma.JsonNull,
+
+      // Availability
+      availability:
+        toJsonColumn(json.availability) ?? existingSpace.availability ?? Prisma.JsonNull,
+
+      // Pricing
+      pricePerDay: numberOr(json.pricePerDay, existingSpace.pricePerDay) ?? existingSpace.pricePerDay,
+      pricePerThreeDays: numberOr(json.pricePerThreeDays, existingSpace.pricePerThreeDays),
+      pricePerWeek: numberOr(json.pricePerWeek, existingSpace.pricePerWeek),
+      pricePerMonth: numberOr(json.pricePerMonth, existingSpace.pricePerMonth),
+
+      // Host information
+      hostName: json.hostName || existingSpace.hostName,
+      hostEmail: json.hostEmail ?? existingSpace.hostEmail,
+      hostPhone: json.hostPhone ?? existingSpace.hostPhone,
+      preferredContact: json.preferredContact ?? existingSpace.preferredContact,
+      responseTime: json.responseTime ?? existingSpace.responseTime,
+      hostInfo: toJsonColumn(json.hostInfo) ?? existingSpace.hostInfo,
     }
 
-    // Update the space with type assertion to bypass TypeScript errors
     const updatedSpace = await db.space.update({
       where: { id: params.id },
-      data: {
-        // Basic information
-        title: json.title || json.name || existingSpace.title,
-        description: json.description || existingSpace.description,
-        workspaceType: (json.workspaceType || existingSpace.workspaceType) as SpaceType,
-        
-        // Location information
-        address: json.address || existingSpace.address,
-        city: json.city || existingSpace.city,
-        postalCode: json.postalCode || existingSpace.postalCode,
-        coordinates: typeof json.coordinates === 'object' ? JSON.stringify(json.coordinates) : json.coordinates || existingSpace.coordinates,
-        directions: json.directions || existingSpace.directions,
-        transportInfo: json.transportInfo || existingSpace.transportInfo,
-        parkingInfo: json.parkingInfo || existingSpace.parkingInfo,
-        
-        // Building and workspace details
-        buildingContext: typeof json.buildingContext === 'object' ? JSON.stringify(json.buildingContext) : json.buildingContext || existingSpace.buildingContext,
-        workspaceDetails: typeof json.workspaceDetails === 'object' ? JSON.stringify(json.workspaceDetails) : json.workspaceDetails || existingSpace.workspaceDetails,
-        
-        // Amenities and photos
-        amenities: Array.isArray(json.amenities) ? JSON.stringify(json.amenities) : json.amenities || existingSpace.amenities,
-        photos: Array.isArray(json.photos) ? JSON.stringify(json.photos) : json.photos || existingSpace.photos,
-        
-        // Availability
-        availability: typeof json.availability === 'object' ? JSON.stringify(json.availability) : json.availability || existingSpace.availability,
-        
-        // Pricing
-        pricePerDay: json.pricePerDay ? Number(json.pricePerDay) : existingSpace.pricePerDay,
-        pricePerThreeDays: json.pricePerThreeDays ? Number(json.pricePerThreeDays) : existingSpace.pricePerThreeDays,
-        pricePerWeek: json.pricePerWeek ? Number(json.pricePerWeek) : existingSpace.pricePerWeek,
-        pricePerMonth: json.pricePerMonth ? Number(json.pricePerMonth) : existingSpace.pricePerMonth,
-        
-        // Host information
-        hostName: json.hostName || existingSpace.hostName,
-        hostEmail: json.hostEmail || existingSpace.hostEmail,
-        hostPhone: json.hostPhone || existingSpace.hostPhone,
-        preferredContact: json.preferredContact || existingSpace.preferredContact,
-        responseTime: json.responseTime || existingSpace.responseTime,
-        hostInfo: json.hostInfo || existingSpace.hostInfo,
-      } as any // Use type assertion to bypass TypeScript errors
+      data,
     })
 
     return NextResponse.json(updatedSpace)
   } catch (error) {
-    console.error('Error updating space:', error)
-    return NextResponse.json({ error: 'Failed to update space' }, { status: 500 })
+    return apiErrorResponse(error)
   }
 }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
-    // Find the space first to make sure it exists
-    const existingSpace = await db.space.findUnique({
-      where: { id: params.id },
-    })
+    const user = await requireUser()
+    await requireSpaceOwner(params.id, user.id)
 
-    if (!existingSpace) {
-      return NextResponse.json({ error: 'Space not found' }, { status: 404 })
-    }
-
-    // Delete the space
     await db.space.delete({
       where: { id: params.id },
     })
 
-    return NextResponse.json({ message: 'Space deleted successfully' })
+    return NextResponse.json({ message: "Space deleted successfully" })
   } catch (error) {
-    console.error('Error deleting space:', error)
-    return NextResponse.json({ error: 'Failed to delete space' }, { status: 500 })
+    return apiErrorResponse(error)
   }
 }
