@@ -74,6 +74,9 @@ export function Nav() {
             
             {/* Desktop Navigation Links */}
             <div className="hidden lg:flex items-center space-x-4 ml-6">
+              <Link href="/explore" className="text-sm font-medium text-rose-600 hover:text-rose-700">
+                Explore
+              </Link>
               <Link href="/spaces" className="text-sm font-medium text-gray-500 hover:text-gray-900">
                 Browse
               </Link>
@@ -144,8 +147,15 @@ export function Nav() {
         >
           <div className="px-4 pt-4 pb-6 space-y-6">
             <div className="space-y-2">
-              <Link 
-                href="/spaces" 
+              <Link
+                href="/explore"
+                className="block px-3 py-2 rounded-md text-base font-medium text-rose-600 hover:bg-gray-100"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Explore
+              </Link>
+              <Link
+                href="/spaces"
                 className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100"
                 onClick={() => setIsMenuOpen(false)}
               >
