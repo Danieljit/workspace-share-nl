@@ -94,7 +94,7 @@ export function ListingForm() {
     if (currentStep < 7) {
       const newStep = currentStep + 1
       setCurrentStep(newStep)
-      router.push(`/test/list/form?step=${newStep}`)
+      router.push(`/spaces/list/form?step=${newStep}`)
     } else {
       // If we're on the last step, submit the form
       handleSubmit()
@@ -105,9 +105,9 @@ export function ListingForm() {
     if (currentStep > 1) {
       const newStep = currentStep - 1
       setCurrentStep(newStep)
-      router.push(`/test/list/form?step=${newStep}`)
+      router.push(`/spaces/list/form?step=${newStep}`)
     } else {
-      router.push("/test/list")
+      router.push("/spaces/list")
     }
   }
   
@@ -127,7 +127,7 @@ export function ListingForm() {
         description: "Please select a workspace type.",
         variant: "destructive",
       })
-      router.push("/test/list/form?step=1")
+      router.push("/spaces/list/form?step=1")
       return
     }
     
@@ -137,7 +137,7 @@ export function ListingForm() {
         description: "Please complete the workspace details.",
         variant: "destructive",
       })
-      router.push("/test/list/form?step=2")
+      router.push("/spaces/list/form?step=2")
       return
     }
     
@@ -147,7 +147,7 @@ export function ListingForm() {
         description: "Please select at least one amenity for your workspace.",
         variant: "destructive",
       })
-      router.push("/test/list/form?step=3")
+      router.push("/spaces/list/form?step=3")
       return
     }
     
@@ -157,7 +157,7 @@ export function ListingForm() {
         description: "Please provide the workspace location.",
         variant: "destructive",
       })
-      router.push("/test/list/form?step=4")
+      router.push("/spaces/list/form?step=4")
       return
     }
     
@@ -167,7 +167,7 @@ export function ListingForm() {
         description: "Please add at least one photo and a title for your workspace.",
         variant: "destructive",
       })
-      router.push("/test/list/form?step=5")
+      router.push("/spaces/list/form?step=5")
       return
     }
     
@@ -177,7 +177,7 @@ export function ListingForm() {
         description: "Please complete the availability, pricing, and host information.",
         variant: "destructive",
       })
-      router.push("/test/list/form?step=6")
+      router.push("/spaces/list/form?step=6")
       return
     }
     

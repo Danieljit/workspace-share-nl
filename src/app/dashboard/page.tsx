@@ -93,7 +93,7 @@ export default function DashboardPage() {
       <div className="mb-12">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold">Your Workspace Listings</h2>
-          <Link href="/test/list/form">
+          <Link href="/spaces/list/form">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Add New Listing
@@ -106,7 +106,7 @@ export default function DashboardPage() {
             <CardContent className="text-center py-10">
               <h3 className="text-xl font-medium mb-2">No listings found</h3>
               <p className="text-muted-foreground mb-6">You haven't created any workspace listings yet.</p>
-              <Link href="/test/list/form">
+              <Link href="/spaces/list/form">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
                   Create Your First Listing

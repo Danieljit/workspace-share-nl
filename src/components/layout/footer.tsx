@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Database } from "lucide-react"
 
 export function NewsletterCTA() {
   return (
@@ -86,10 +85,6 @@ export function Footer() {
             <Link href="/terms" className="hover:text-foreground">Terms</Link>
             <Link href="/sitemap" className="hover:text-foreground">Sitemap</Link>
             <Link href="/company" className="hover:text-foreground">Company Details</Link>
-            <Link href="/db-status" className="hover:text-foreground flex items-center">
-              <Database className="h-3 w-3 mr-1" />
-              Database Status
-            </Link>
           </div>
           <div className="flex gap-6">
             <select 

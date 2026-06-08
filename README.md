@@ -19,7 +19,7 @@ WorkspaceShare is a modern platform that connects workspace owners with professi
 - **User Dashboard**: Manage your listings and bookings in a centralized dashboard
 - **Reviews & Ratings**: Leave and view reviews for workspaces
 - **Responsive Design**: Fully responsive UI that works on all devices
-- **Database Status**: Monitor database connectivity with a dedicated status page
+- **Transactional Email**: Booking and contact notifications via Resend
 
 ## 🛠️ Tech Stack
 
@@ -74,16 +74,20 @@ npm install
 Copy the example environment file and update it with your own values:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Edit `.env.local` with your database connection string, authentication secrets, and API keys.
+Edit `.env` with your database connection string, authentication secrets, and API keys. See [Environment Variables](#-environment-variables) below for the full list.
 
 4. **Set up the database**
 
+Generate the Prisma client and apply migrations:
+
 ```bash
 npx prisma generate
-npx prisma db push
+npx prisma migrate deploy   # apply existing migrations (production / CI)
+# or, for local development:
+npx prisma migrate dev      # apply + create migrations as the schema evolves
 ```
 
 5. **Seed the database with sample data (optional)**
@@ -100,6 +104,32 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
+## 🔐 Environment Variables
+
+All variables are documented in [`.env.example`](.env.example). Copy it to `.env` and fill in your values.
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | PostgreSQL connection string used by Prisma. |
+| `AUTH_SECRET` | Yes | Auth.js v5 secret. Generate with `npx auth secret` or `openssl rand -base64 32`. |
+| `AUTH_URL` | Prod | Canonical app URL (e.g. `https://yourdomain.com`). Optional in development. |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | No | Google OAuth credentials (credentials login works without these). |
+| `STRIPE_SECRET_KEY` | Yes | Stripe secret key (use a `sk_test_...` key in development). |
+| `STRIPE_WEBHOOK_SECRET` | Yes | Stripe webhook signing secret (`whsec_...`). |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Yes | Stripe publishable key (`pk_test_...`). Exposed to the browser. |
+| `RESEND_API_KEY` | No | Resend API key. If unset, emails are logged to the console instead of sent. |
+| `EMAIL_FROM` | No | From-address for transactional email. |
+| `CONTACT_EMAIL` | No | Recipient for contact-form submissions. Falls back to `EMAIL_FROM` if unset. |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | No | Cloudinary cloud name (browser-visible). |
+| `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | No | Cloudinary server credentials for signed uploads. |
+| `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` | No | Cloudinary unsigned upload preset (browser-visible). |
+
+> **Note on linting:** the `build` script runs `next build --no-lint` because the
+> codebase currently has pre-existing ESLint findings (mostly
+> `@typescript-eslint/no-explicit-any` and unused-variable warnings) that are out
+> of scope to fix here. Run `npm run lint` to see them. Once they are cleaned up,
+> switch the `build` script back to `next build` to re-enable linting in CI.
+
 ## 📁 Project Structure
 
 ```
@@ -111,8 +141,7 @@ workspace-share/
 │   ├── app/               # Next.js App Router pages
 │   │   ├── api/           # API routes for data handling
 │   │   ├── dashboard/     # Dashboard pages for user management
-│   │   ├── spaces/        # Workspace listing and details pages
-│   │   └── db-status/     # Database status monitoring page
+│   │   └── spaces/        # Workspace listing and details pages
 │   ├── components/        # React components
 │   │   ├── auth/          # Authentication components
 │   │   ├── spaces/        # Workspace listing components
@@ -137,16 +166,17 @@ The application uses NextAuth.js for authentication with two providers:
 To set up Google authentication:
 
 1. Create OAuth credentials in the [Google Cloud Console](https://console.cloud.google.com/)
-2. Add the client ID and secret to your `.env.local` file
+2. Add the client ID and secret to your `.env` file
 3. Set the authorized redirect URI to `http://localhost:3000/api/auth/callback/google` for local development
 
 ## 💾 Database Configuration
 
-The application uses PostgreSQL with Prisma ORM. To check if your database is properly configured and connected:
+The application uses PostgreSQL with Prisma ORM.
 
-1. Visit the database status page at `/db-status`
-2. The page will show connection status, database information, and record counts
-3. If there are connection issues, check your `.env` file for the correct `DATABASE_URL`
+1. Set `DATABASE_URL` in your `.env` file to a valid PostgreSQL connection string.
+2. Run `npx prisma migrate deploy` (or `npx prisma migrate dev` in development) to apply the schema.
+3. Optionally run `npm run seed` to populate sample data.
+4. Inspect the database with `npx prisma studio` if you need a visual browser.
 
 ## 🗺️ Map Integration
 
