@@ -19,8 +19,27 @@ model User {
   image         String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-  accounts      Account[]   
-  sessions      Session[]   
+
+  // Professional profile layer — lets bookers and hosts describe themselves
+  // and discover each other by skills/industry/interests.
+  headline          String?
+  bio               String?            @db.Text
+  jobTitle          String?
+  companyName       String?
+  industry          String?
+  skills            String[]           @default([])
+  interests         String[]           @default([])
+  lookingFor        String?            @db.Text
+  websiteUrl        String?
+  linkedinUrl       String?
+  city              String?
+  languages         String[]           @default([])
+  preferredWorkdays String[]           @default([])
+  profileVisibility ProfileVisibility  @default(PRIVATE)
+  userType          UserType           @default(GUEST)
+
+  accounts      Account[]
+  sessions      Session[]
   spaces        Space[]     // Spaces owned by the user
   bookings      Booking[]   // Bookings made by the user
   reviews       Review[]    // Reviews written by the user
@@ -111,10 +130,15 @@ model Space {
 model Booking {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
   startDate DateTime
   endDate   DateTime
   status    BookingStatus @default(PENDING)
   totalPrice Float
+  // Links a booking to its Stripe PaymentIntent so the webhook can confirm the
+  // exact booking idempotently (no duplicate confirmed bookings on retries).
+  stripePaymentIntentId String?       @unique
+  paymentStatus         String?       // e.g. "succeeded", "failed", "refunded"
   userId    String
   spaceId   String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -144,4 +168,15 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum UserType {
+  GUEST
+  HOST
+  BOTH
 }

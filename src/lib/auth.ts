@@ -1,77 +1,100 @@
+import NextAuth, { type DefaultSession } from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import type { DefaultSession, NextAuthConfig } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
+import Credentials from "next-auth/providers/credentials"
+import Google from "next-auth/providers/google"
+import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
 
+/**
+ * Auth.js v5 configuration — single source of truth for authentication.
+ *
+ * - Credentials provider verifies email + password against the database (bcrypt).
+ * - Google OAuth persists users via the Prisma adapter.
+ * - JWT session strategy (required when using the Credentials provider); the
+ *   logged-in user's id is exposed on `session.user.id`.
+ */
+
 declare module "next-auth" {
-  interface Session extends DefaultSession {
+  interface Session {
     user: {
-      id: string;
+      id: string
     } & DefaultSession["user"]
   }
 }
 
-// Helper function to sanitize URLs
-function sanitizeUrl(url: string | undefined): string {
-  if (!url) return 'http://localhost:3000';
-  
-  // Remove markdown link syntax if present
-  let cleanUrl = url.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-  // Remove any quotes
-  cleanUrl = cleanUrl.replace(/["']/g, '');
-  
-  // Ensure it's a valid URL
-  try {
-    new URL(cleanUrl);
-    return cleanUrl;
-  } catch (e) {
-    console.error('Invalid URL:', cleanUrl);
-    return 'http://localhost:3000';
-  }
+const googleClientId = process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID
+const googleClientSecret =
+  process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET
+
+// Only register Google when credentials are present so local/dev without OAuth
+// keys still boots cleanly (credentials login keeps working).
+const providers = []
+if (googleClientId && googleClientSecret) {
+  providers.push(
+    Google({
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
+      // Allows linking a Google login to an existing email/password account.
+      allowDangerousEmailAccountLinking: true,
+    }),
+  )
 }
 
-// Clean the NEXTAUTH_URL environment variable
-if (process.env.NEXTAUTH_URL) {
-  process.env.NEXTAUTH_URL = sanitizeUrl(process.env.NEXTAUTH_URL);
-}
-
-export const authOptions: NextAuthConfig = {
-  adapter: PrismaAdapter(db),
-  providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize() {
-        // During testing, always return a valid user
-        return { id: "1", name: "Test User", email: "test@example.com" }
+providers.push(
+  Credentials({
+    name: "Credentials",
+    credentials: {
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials) {
+      const email = credentials?.email
+      const password = credentials?.password
+      if (typeof email !== "string" || typeof password !== "string") {
+        return null
       }
-    })
-  ],
+
+      const user = await db.user.findUnique({ where: { email } })
+      if (!user?.hashedPassword) {
+        return null
+      }
+
+      const passwordMatches = await bcrypt.compare(password, user.hashedPassword)
+      if (!passwordMatches) {
+        return null
+      }
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+      }
+    },
+  }),
+)
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(db),
+  trustHost: true,
+  session: { strategy: "jwt" },
   pages: {
     signIn: "/signin",
+    error: "/signin",
   },
-  session: {
-    strategy: "jwt"
-  },
+  providers,
   callbacks: {
-    async session({ session }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: "1"
-        }
+    async jwt({ token, user }) {
+      if (user?.id) {
+        token.sub = user.id
       }
-    }
-  }
-}
-
-// Simple mock auth function for demonstration purposes
-export const auth = () => {
-  return Promise.resolve({
-    user: { id: "1", name: "Test User", email: "test@example.com" }
-  })
-}
+      return token
+    },
+    async session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub
+      }
+      return session
+    },
+  },
+})

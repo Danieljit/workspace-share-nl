@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
+import { sendEmail, welcomeEmail } from "@/lib/email"
 
 export async function POST(req: Request) {
   try {
@@ -9,6 +10,13 @@ export async function POST(req: Request) {
     if (!name || !email || !password) {
       return NextResponse.json(
         { message: "Missing required fields" },
+        { status: 400 }
+      )
+    }
+
+    if (typeof password !== "string" || password.length < 6) {
+      return NextResponse.json(
+        { message: "Password must be at least 6 characters" },
         { status: 400 }
       )
     }
@@ -36,6 +44,12 @@ export async function POST(req: Request) {
         hashedPassword,
       },
     })
+
+    // Best-effort welcome email (no-op if Resend isn't configured).
+    if (user.email) {
+      const { subject, html } = welcomeEmail(user.name)
+      await sendEmail({ to: user.email, subject, html })
+    }
 
     return NextResponse.json(
       {

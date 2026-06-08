@@ -1,22 +1,88 @@
-import { PrismaClient, SpaceType } from '@prisma/client'
+import { PrismaClient, SpaceType, ProfileVisibility, UserType } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
+
+// All demo accounts share this password so you can log in after seeding.
+const DEMO_PASSWORD = 'password123'
 
 const HOSTS = [
   {
     name: "Sarah Johnson",
     email: "sarah@coworkspace.com",
     image: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg",
+    headline: "Co-working host & community builder",
+    bio: "I run a friendly co-working space in Enschede and love connecting freelancers.",
+    jobTitle: "Community Manager",
+    companyName: "Coworkspace",
+    industry: "Real Estate",
+    city: "Enschede",
+    skills: ["Community Building", "Hospitality", "Event Planning"],
+    interests: ["Networking", "Coffee", "Local startups"],
+    languages: ["Dutch", "English"],
   },
   {
     name: "Michael Chen",
     email: "michael@techspace.com",
     image: "https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg",
+    headline: "Tech studio host for builders",
+    bio: "Software engineer turned space host. Happy to talk shop with fellow devs.",
+    jobTitle: "Founder",
+    companyName: "TechSpace",
+    industry: "Information Technology",
+    city: "Hengelo",
+    skills: ["Software Engineering", "Cloud", "Mentoring"],
+    interests: ["Open source", "AI", "Cycling"],
+    languages: ["English", "Mandarin"],
   },
   {
     name: "Emily Rodriguez",
     email: "emily@creativeoffices.com",
     image: "https://images.pexels.com/photos/733872/pexels-photo-733872.jpeg",
+    headline: "Creative studio host & designer",
+    bio: "Designer hosting a bright studio for creatives and makers.",
+    jobTitle: "Creative Director",
+    companyName: "Creative Offices",
+    industry: "Design",
+    city: "Oldenzaal",
+    skills: ["Branding", "UX Design", "Illustration"],
+    interests: ["Art", "Photography", "Typography"],
+    languages: ["English", "Spanish"],
+  },
+]
+
+const BOOKERS = [
+  {
+    name: "Daan Visser",
+    email: "daan@freelance.dev",
+    image: "https://images.pexels.com/photos/91227/pexels-photo-91227.jpeg",
+    headline: "Freelance full-stack developer",
+    bio: "Independent developer looking for desks near other IT people to collaborate.",
+    jobTitle: "Full-stack Developer",
+    companyName: "Freelance",
+    industry: "Information Technology",
+    city: "Enschede",
+    skills: ["TypeScript", "React", "Node.js", "PostgreSQL"],
+    interests: ["AI", "Open source", "Running"],
+    lookingFor: "Other IT freelancers to share projects and knowledge with.",
+    languages: ["Dutch", "English"],
+    profileVisibility: ProfileVisibility.PUBLIC,
+  },
+  {
+    name: "Laura Bakker",
+    email: "laura@adminpro.nl",
+    image: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg",
+    headline: "Virtual assistant & admin specialist",
+    bio: "I help small companies with administration and back-office support.",
+    jobTitle: "Administrative Specialist",
+    companyName: "AdminPro",
+    industry: "Business Services",
+    city: "Hengelo",
+    skills: ["Administration", "Bookkeeping", "Scheduling"],
+    interests: ["Productivity", "Reading", "Yoga"],
+    lookingFor: "Companies that need flexible administrative support.",
+    languages: ["Dutch", "English", "German"],
+    profileVisibility: ProfileVisibility.PUBLIC,
   },
 ]
 
@@ -156,14 +222,30 @@ async function main() {
   await prisma.space.deleteMany()
   await prisma.user.deleteMany()
 
-  // Create hosts
+  const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, 10)
+
+  // Create hosts (with hashed passwords + public profiles so they're discoverable)
   const hosts = await Promise.all(
     HOSTS.map((host) =>
       prisma.user.create({
         data: {
-          name: host.name,
-          email: host.email,
-          image: host.image,
+          ...host,
+          hashedPassword,
+          userType: UserType.HOST,
+          profileVisibility: ProfileVisibility.PUBLIC,
+        },
+      })
+    )
+  )
+
+  // Create demo bookers for discovery/matching testing
+  await Promise.all(
+    BOOKERS.map((booker) =>
+      prisma.user.create({
+        data: {
+          ...booker,
+          hashedPassword,
+          userType: UserType.GUEST,
         },
       })
     )

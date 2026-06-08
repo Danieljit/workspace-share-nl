@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
+import { useAuth } from "@/components/providers/auth-provider"
 import { GoogleSignInButton } from "./google-signin-button"
 
 export function SignUpForm() {
   const router = useRouter()
   const { toast } = useToast()
+  const { signIn } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -24,16 +26,30 @@ export function SignUpForm() {
     }
 
     try {
-      // For demo purposes, we'll just simulate a successful signup
-      // In a real app, this would call an API endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}))
+        throw new Error(result.message || "Could not create your account")
+      }
+
       toast({
         title: "Account created",
-        description: "Please sign in with your new account",
+        description: "Welcome to WorkspaceShare!",
       })
-      
-      router.push("/signin?success=true")
+
+      // Sign the new user straight in for a smooth onboarding flow.
+      const signedIn = await signIn(data.email, data.password)
+      if (signedIn) {
+        router.refresh()
+        router.push("/dashboard/profile")
+      } else {
+        router.push("/signin?success=true")
+      }
     } catch (error) {
       toast({
         title: "Sign up failed",
