@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "./ui/button"
 import { Menu, X, LayoutDashboard } from "lucide-react"
 import { useAuth } from "@/components/providers/auth-provider"
@@ -9,6 +10,7 @@ import { StaplerIcon } from "./ui/stapler-icon"
 
 export function Nav() {
   const { user, signOut } = useAuth()
+  const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -51,6 +53,12 @@ export function Nav() {
       document.body.style.overflow = ''
     }
   }, [isMenuOpen])
+
+  // The /explore route ships its own Airbnb-style header, so hide the global nav there.
+  // (Placed after all hooks to respect the Rules of Hooks.)
+  if (pathname?.startsWith("/explore")) {
+    return null
+  }
 
   return (
     <nav className="border-b relative z-50">
