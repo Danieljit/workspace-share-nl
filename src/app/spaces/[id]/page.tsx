@@ -9,6 +9,8 @@ import { Testimonials } from "@/components/ui/testimonials"
 import { testimonials } from "@/data/testimonials"
 import { Map } from "@/components/ui/map"
 import { NewsletterCTA, Footer } from "@/components/layout/footer"
+import { HostCard } from "@/components/profile/host-card"
+import type { ProfileSummary } from "@/types"
 
 const TOP_AMENITIES = [
   { icon: "wifi", label: "High-speed WiFi" },
@@ -46,6 +48,23 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
   if (!space) {
     notFound()
   }
+
+  // Only surface the owner's profile when they've opted into a PUBLIC profile.
+  const hostSummary: ProfileSummary | null =
+    space.owner.profileVisibility === "PUBLIC"
+      ? {
+          id: space.owner.id,
+          name: space.owner.name,
+          image: space.owner.image,
+          headline: space.owner.headline,
+          jobTitle: space.owner.jobTitle,
+          companyName: space.owner.companyName,
+          industry: space.owner.industry,
+          city: space.owner.city,
+          skills: space.owner.skills,
+          interests: space.owner.interests,
+        }
+      : null
 
   // Use type assertion to handle both old and new schema formats
   const spaceAny = space as any
@@ -272,8 +291,9 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
 
           {/* Right Column - Booking */}
           <div>
-            <div className="sticky top-6">
+            <div className="sticky top-6 space-y-6">
               <BookingForm price={spacePrice} spaceId={params.id} />
+              {hostSummary && <HostCard host={hostSummary} />}
             </div>
           </div>
         </div>
