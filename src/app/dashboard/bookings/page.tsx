@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { 
-  Calendar, 
-  MapPin, 
-  Euro, 
-  Clock,
+import {
+  Calendar,
+  MapPin,
   CheckCircle,
   XCircle,
   AlertCircle,
-  ExternalLink
+  Clock,
+  Loader2,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,7 +22,40 @@ import Link from "next/link";
 import Image from "next/image";
 import { PlaceholderImage } from "@/components/ui/placeholder-image";
 
-// Booking status badge component
+type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
+type LifecycleAction = "cancel" | "confirm" | "reject";
+
+interface SpaceSummary {
+  id: string;
+  title: string;
+  address?: string | null;
+  city?: string | null;
+  photos?: unknown;
+}
+
+interface UserSummary {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+}
+
+interface BookingDTO {
+  id: string;
+  startDate: string;
+  endDate: string;
+  status: BookingStatus;
+  totalPrice: number;
+  userId: string;
+  spaceId: string;
+  space: SpaceSummary;
+  user?: UserSummary;
+}
+
+interface MineResponse {
+  asGuest: BookingDTO[];
+  asHost: BookingDTO[];
+}
+
 const StatusBadge = ({ status }: { status: string }) => {
   switch (status.toUpperCase()) {
     case "CONFIRMED":
@@ -44,6 +76,12 @@ const StatusBadge = ({ status }: { status: string }) => {
           <XCircle className="mr-1 h-3 w-3" /> Cancelled
         </Badge>
       );
+    case "COMPLETED":
+      return (
+        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+          <CheckCircle className="mr-1 h-3 w-3" /> Completed
+        </Badge>
+      );
     default:
       return (
         <Badge variant="outline">
@@ -53,244 +91,116 @@ const StatusBadge = ({ status }: { status: string }) => {
   }
 };
 
-export default function BookingsPage() {
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { isAuthenticated, user, isLoading } = useAuth();
-  const router = useRouter();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    // Redirect if not authenticated
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to view your bookings",
-        variant: "destructive"
-      });
-      router.push("/signin");
-      return;
-    }
-
-    // Fetch bookings data
-    const fetchBookings = async () => {
-      try {
-        // In a real app, this would be an API call
-        // For now, we'll use mock data
-        const mockBookings = [
-          {
-            id: "booking1",
-            spaceId: "space1",
-            spaceTitle: "Enschede Innovation Hub",
-            spaceImage: "/images/spaces/office-1.jpg",
-            startDate: new Date(2025, 3, 15),
-            endDate: new Date(2025, 3, 17),
-            totalPrice: 75,
-            status: "CONFIRMED",
-            address: "Oude Markt 24, Enschede",
-            hostName: "Martijn de Vries"
-          },
-          {
-            id: "booking2",
-            spaceId: "space2",
-            spaceTitle: "Hengelo Creative Studio",
-            spaceImage: "/images/spaces/office-2.jpg",
-            startDate: new Date(2025, 4, 5),
-            endDate: new Date(2025, 4, 6),
-            totalPrice: 30,
-            status: "PENDING",
-            address: "Marktstraat 15, Hengelo",
-            hostName: "Lisa Jansen"
-          },
-          {
-            id: "booking3",
-            spaceId: "space3",
-            spaceTitle: "Amsterdam Canal View Office",
-            spaceImage: "/images/spaces/office-3.jpg",
-            startDate: new Date(2025, 2, 10),
-            endDate: new Date(2025, 2, 12),
-            totalPrice: 120,
-            status: "COMPLETED",
-            address: "Herengracht 123, Amsterdam",
-            hostName: "Jan de Boer"
-          },
-          {
-            id: "booking4",
-            spaceId: "space4",
-            spaceTitle: "Rotterdam Modern Workspace",
-            spaceImage: "/images/spaces/office-4.jpg",
-            startDate: new Date(2025, 1, 20),
-            endDate: new Date(2025, 1, 25),
-            totalPrice: 200,
-            status: "CANCELLED",
-            address: "Witte de Withstraat 50, Rotterdam",
-            hostName: "Emma Visser"
-          }
-        ];
-        
-        setBookings(mockBookings);
-      } catch (error) {
-        console.error("Error fetching bookings:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load your bookings. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (isAuthenticated) {
-      fetchBookings();
-    }
-  }, [isAuthenticated, isLoading, router, toast]);
-
-  // Filter bookings by status
-  const upcomingBookings = bookings.filter(booking => 
-    (booking.status === "CONFIRMED" || booking.status === "PENDING") && 
-    new Date(booking.endDate) >= new Date()
-  );
-  
-  const pastBookings = bookings.filter(booking => 
-    booking.status === "COMPLETED" || 
-    (booking.status === "CONFIRMED" && new Date(booking.endDate) < new Date())
-  );
-  
-  const cancelledBookings = bookings.filter(booking => 
-    booking.status === "CANCELLED"
-  );
-
-  if (isLoading || loading) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <div className="w-8 h-8 border-t-2 border-b-2 border-primary rounded-full animate-spin"></div>
-      </div>
-    );
+function firstPhoto(photos: unknown): string | null {
+  try {
+    let arr = photos;
+    if (typeof photos === "string") arr = JSON.parse(photos);
+    if (Array.isArray(arr) && typeof arr[0] === "string") return arr[0];
+  } catch {
+    // ignore malformed photo data
   }
+  return null;
+}
 
+function placeholderType(title: string) {
+  const t = title.toLowerCase();
+  if (t.includes("meeting")) return "meeting" as const;
+  if (t.includes("desk")) return "desk" as const;
+  if (t.includes("office")) return "office" as const;
+  return "generic" as const;
+}
+
+function BookingCardSkeleton() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">My Bookings</h1>
-        <p className="text-muted-foreground">
-          View and manage all your workspace bookings
-        </p>
+    <Card className="overflow-hidden">
+      <div className="flex flex-col md:flex-row">
+        <div className="w-full md:w-1/4 h-48 md:h-auto bg-muted animate-pulse" />
+        <div className="p-6 flex-1 space-y-4">
+          <div className="h-5 w-24 bg-muted animate-pulse rounded" />
+          <div className="h-6 w-2/3 bg-muted animate-pulse rounded" />
+          <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+          <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
+        </div>
       </div>
-
-      <Tabs defaultValue="upcoming" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="upcoming">
-            Upcoming ({upcomingBookings.length})
-          </TabsTrigger>
-          <TabsTrigger value="past">
-            Past ({pastBookings.length})
-          </TabsTrigger>
-          <TabsTrigger value="cancelled">
-            Cancelled ({cancelledBookings.length})
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="upcoming" className="mt-6">
-          {upcomingBookings.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-medium mb-2">No upcoming bookings</h3>
-                <p className="text-muted-foreground mb-6 text-center">
-                  You don't have any upcoming bookings. Ready to find your next workspace?
-                </p>
-                <Button asChild>
-                  <Link href="/spaces">Browse Workspaces</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6">
-              {upcomingBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="past" className="mt-6">
-          {pastBookings.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-medium mb-2">No past bookings</h3>
-                <p className="text-muted-foreground mb-6 text-center">
-                  You don't have any past bookings yet.
-                </p>
-                <Button asChild>
-                  <Link href="/spaces">Browse Workspaces</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6">
-              {pastBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} isPast />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="cancelled" className="mt-6">
-          {cancelledBookings.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <XCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-medium mb-2">No cancelled bookings</h3>
-                <p className="text-muted-foreground mb-6 text-center">
-                  You don't have any cancelled bookings.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6">
-              {cancelledBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} isCancelled />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+    </Card>
   );
 }
 
-// Booking card component
-function BookingCard({ booking, isPast = false, isCancelled = false }: { 
-  booking: any;
-  isPast?: boolean;
-  isCancelled?: boolean;
+function EmptyState({ message }: { message: string }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center py-10">
+        <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-xl font-medium mb-2">{message}</h3>
+        <p className="text-muted-foreground mb-6 text-center">
+          When you have bookings they will appear here.
+        </p>
+        <Button asChild>
+          <Link href="/spaces">Browse Workspaces</Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface CardAction {
+  label: string;
+  action: LifecycleAction;
+  variant?: "default" | "outline" | "destructive";
+}
+
+function BookingCard({
+  booking,
+  perspective,
+  pending,
+  onAction,
+}: {
+  booking: BookingDTO;
+  perspective: "guest" | "host";
+  pending: boolean;
+  onAction: (id: string, action: LifecycleAction) => void;
 }) {
+  const photo = firstPhoto(booking.space.photos);
+  const address = [booking.space.address, booking.space.city]
+    .filter(Boolean)
+    .join(", ");
+
+  const actions: CardAction[] = [];
+  if (perspective === "guest") {
+    if (booking.status === "PENDING" || booking.status === "CONFIRMED") {
+      actions.push({ label: "Cancel", action: "cancel", variant: "outline" });
+    }
+  } else {
+    if (booking.status === "PENDING") {
+      actions.push({ label: "Confirm", action: "confirm" });
+      actions.push({ label: "Reject", action: "reject", variant: "destructive" });
+    } else if (booking.status === "CONFIRMED") {
+      actions.push({ label: "Cancel", action: "cancel", variant: "outline" });
+    }
+  }
+
   return (
     <Card className="overflow-hidden">
       <div className="flex flex-col md:flex-row">
         <div className="relative w-full md:w-1/4 h-48 md:h-auto">
           <div className="absolute inset-0">
-            {booking.spaceImage ? (
-              <Image 
-                src={booking.spaceImage} 
-                alt={booking.spaceTitle}
+            {photo ? (
+              <Image
+                src={photo}
+                alt={booking.space.title}
                 fill
                 className="object-cover"
               />
             ) : (
-              <PlaceholderImage 
-                type={booking.spaceTitle.toLowerCase().includes("meeting") ? "meeting" : 
-                      booking.spaceTitle.toLowerCase().includes("desk") ? "desk" : 
-                      booking.spaceTitle.toLowerCase().includes("office") ? "office" : "generic"}
+              <PlaceholderImage
+                type={placeholderType(booking.space.title)}
                 fill
-                alt={booking.spaceTitle}
+                alt={booking.space.title}
               />
             )}
           </div>
         </div>
-        
+
         <div className="p-6 flex-1">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
@@ -300,16 +210,21 @@ function BookingCard({ booking, isPast = false, isCancelled = false }: {
                   Booking ID: {booking.id}
                 </span>
               </div>
-              
-              <Link href={`/spaces/${booking.spaceId}`} className="hover:underline">
-                <h3 className="text-xl font-bold mb-1">{booking.spaceTitle}</h3>
+
+              <Link
+                href={`/spaces/${booking.spaceId}`}
+                className="hover:underline"
+              >
+                <h3 className="text-xl font-bold mb-1">{booking.space.title}</h3>
               </Link>
-              
-              <div className="flex items-center text-muted-foreground mb-4">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span className="text-sm">{booking.address}</span>
-              </div>
-              
+
+              {address && (
+                <div className="flex items-center text-muted-foreground mb-4">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <span className="text-sm">{address}</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <h4 className="text-sm font-medium mb-1">Check-in</h4>
@@ -320,56 +235,209 @@ function BookingCard({ booking, isPast = false, isCancelled = false }: {
                   <p>{format(new Date(booking.endDate), "EEE, MMM d, yyyy")}</p>
                 </div>
               </div>
-              
-              <div>
-                <h4 className="text-sm font-medium mb-1">Host</h4>
-                <p>{booking.hostName}</p>
-              </div>
+
+              {perspective === "host" && booking.user && (
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Guest</h4>
+                  <p>{booking.user.name || booking.user.email || "Guest"}</p>
+                </div>
+              )}
             </div>
-            
+
             <div className="text-right">
               <div className="mb-4">
                 <p className="text-sm text-muted-foreground mb-1">Total price</p>
-                <p className="text-2xl font-bold">€{booking.totalPrice.toFixed(2)}</p>
+                <p className="text-2xl font-bold">
+                  €{booking.totalPrice.toFixed(2)}
+                </p>
               </div>
-              
-              {!isPast && !isCancelled && (
+
+              {actions.length > 0 && (
                 <div className="space-y-2">
-                  <Button asChild className="w-full">
-                    <Link href={`/dashboard/bookings/${booking.id}`}>
-                      View Details
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    Contact Host
-                  </Button>
+                  {actions.map((a) => (
+                    <Button
+                      key={a.action}
+                      variant={a.variant}
+                      className="w-full"
+                      disabled={pending}
+                      onClick={() => onAction(booking.id, a.action)}
+                    >
+                      {pending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      {a.label}
+                    </Button>
+                  ))}
                 </div>
-              )}
-              
-              {isPast && (
-                <div className="space-y-2">
-                  <Button asChild className="w-full">
-                    <Link href={`/dashboard/bookings/${booking.id}`}>
-                      View Receipt
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    Book Again
-                  </Button>
-                </div>
-              )}
-              
-              {isCancelled && (
-                <Button asChild className="w-full">
-                  <Link href={`/spaces/${booking.spaceId}`}>
-                    View Space
-                  </Link>
-                </Button>
               )}
             </div>
           </div>
         </div>
       </div>
     </Card>
+  );
+}
+
+export default function BookingsPage() {
+  const [data, setData] = useState<MineResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const fetchBookings = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/bookings/mine", { cache: "no-store" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to load your bookings");
+      }
+      const json: MineResponse = await res.json();
+      setData(json);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load your bookings";
+      setError(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to view your bookings",
+        variant: "destructive",
+      });
+      router.push("/signin");
+      return;
+    }
+    if (isAuthenticated) {
+      fetchBookings();
+    }
+  }, [isAuthenticated, isLoading, router, toast, fetchBookings]);
+
+  const handleAction = useCallback(
+    async (id: string, action: LifecycleAction) => {
+      setPendingId(id);
+      try {
+        const res = await fetch(`/api/bookings/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || "Action failed");
+        }
+        const labels: Record<LifecycleAction, string> = {
+          cancel: "cancelled",
+          confirm: "confirmed",
+          reject: "rejected",
+        };
+        toast({
+          title: "Success",
+          description: `Booking ${labels[action]}.`,
+        });
+        await fetchBookings();
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: err instanceof Error ? err.message : "Action failed",
+          variant: "destructive",
+        });
+      } finally {
+        setPendingId(null);
+      }
+    },
+    [toast, fetchBookings],
+  );
+
+  const showSkeleton = isLoading || loading;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">My Bookings</h1>
+        <p className="text-muted-foreground">
+          View and manage your trips and reservations on your spaces
+        </p>
+      </div>
+
+      {showSkeleton ? (
+        <div className="grid gap-6">
+          <BookingCardSkeleton />
+          <BookingCardSkeleton />
+        </div>
+      ) : error ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-10">
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+            <h3 className="text-xl font-medium mb-2">
+              Couldn&apos;t load bookings
+            </h3>
+            <p className="text-muted-foreground mb-6 text-center">{error}</p>
+            <Button onClick={fetchBookings}>Try again</Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs defaultValue="trips" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="trips">
+              My trips ({data?.asGuest.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="reservations">
+              Reservations on my spaces ({data?.asHost.length ?? 0})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="trips" className="mt-6">
+            {!data || data.asGuest.length === 0 ? (
+              <EmptyState message="No bookings yet" />
+            ) : (
+              <div className="grid gap-6">
+                {data.asGuest.map((booking) => (
+                  <BookingCard
+                    key={booking.id}
+                    booking={booking}
+                    perspective="guest"
+                    pending={pendingId === booking.id}
+                    onAction={handleAction}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="reservations" className="mt-6">
+            {!data || data.asHost.length === 0 ? (
+              <EmptyState message="No bookings yet" />
+            ) : (
+              <div className="grid gap-6">
+                {data.asHost.map((booking) => (
+                  <BookingCard
+                    key={booking.id}
+                    booking={booking}
+                    perspective="host"
+                    pending={pendingId === booking.id}
+                    onAction={handleAction}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
   );
 }
