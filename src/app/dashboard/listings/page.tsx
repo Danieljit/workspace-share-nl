@@ -183,7 +183,7 @@ export default function ListingsPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/test/list/form">
+          <Link href="/spaces/list/form">
             <Plus className="mr-2 h-4 w-4" />
             Create New Listing
           </Link>
@@ -283,7 +283,7 @@ export default function ListingsPage() {
             </p>
             {!searchQuery && (
               <Button asChild>
-                <Link href="/test/list/form">
+                <Link href="/spaces/list/form">
                   <Plus className="mr-2 h-4 w-4" />
                   Create Your First Listing
                 </Link>

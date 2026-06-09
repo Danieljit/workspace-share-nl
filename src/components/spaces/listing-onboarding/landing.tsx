@@ -129,7 +129,7 @@ export function ListingOnboardingLanding() {
   }, [isSliding])
 
   const handleGetStarted = () => {
-    router.push("/test/list/form")
+    router.push("/spaces/list/form")
   }
 
   return (

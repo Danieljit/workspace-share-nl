@@ -75,7 +75,7 @@ export function Nav() {
               <Link href="/contact" className="text-sm font-medium text-gray-500 hover:text-gray-900">
                 Contact
               </Link>
-              <Link href="/test/list" className="text-sm font-medium text-gray-500 hover:text-gray-900">
+              <Link href="/spaces/list" className="text-sm font-medium text-gray-500 hover:text-gray-900">
                 List Space
               </Link>
               {user && (
@@ -158,7 +158,7 @@ export function Nav() {
                 Contact
               </Link>
               <Link 
-                href="/test/list" 
+                href="/spaces/list" 
                 className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100"
                 onClick={() => setIsMenuOpen(false)}
               >

@@ -215,7 +215,7 @@ export default function AboutPage() {
               Freedom to work differently. Freedom to connect meaningfully. Freedom to thrive on your terms.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/test/list/form">
+              <Link href="/spaces/list/form">
                 <Button size="lg" className="bg-white text-black hover:bg-white/90">List Your Space</Button>
               </Link>
               <Link href="/spaces">
