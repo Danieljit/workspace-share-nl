@@ -48,3 +48,9 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# Agent tooling / local config (not part of the app)
+.claude/
+.agents/
+skills-lock.json
+.mcp.json
