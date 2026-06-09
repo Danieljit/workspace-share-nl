@@ -27,10 +27,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       where: { id: params.id },
       include: {
         owner: {
+          // Public endpoint — never expose the owner's account email.
           select: {
             id: true,
             name: true,
-            email: true,
             image: true,
           },
         },
@@ -41,7 +41,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: "Space not found" }, { status: 404 })
     }
 
-    return NextResponse.json(space)
+    // Strip host contact PII from the public response. (Surface these only
+    // through an authenticated channel, e.g. after a confirmed booking.)
+    const { hostEmail, hostPhone, ...publicSpace } = space
+    return NextResponse.json(publicSpace)
   } catch (error) {
     console.error("Error fetching space:", error)
     return NextResponse.json({ error: "Failed to fetch space" }, { status: 500 })

@@ -52,10 +52,10 @@ export async function GET(req: Request) {
         where,
         include: {
           owner: {
+            // Public listing — do not expose owner account email.
             select: {
               id: true,
               name: true,
-              email: true,
               image: true,
             },
           },
@@ -82,7 +82,6 @@ export async function GET(req: Request) {
       owner: {
         id: space.owner.id,
         name: space.owner.name,
-        email: space.owner.email,
         image: space.owner.image,
       },
     }))
