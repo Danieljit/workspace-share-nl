@@ -2,17 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  TrendingUp, 
-  CreditCard, 
-  Calendar, 
-  DollarSign,
-  BarChart3,
-  PieChart,
+import {
+  Calendar,
   Download,
   ArrowUpRight,
   ArrowDownRight,
-  Filter
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,154 +15,135 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/components/providers/auth-provider";
-import { format, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth } from "date-fns";
+import { format } from "date-fns";
 
-// Mock data for financial charts
-const generateMockRevenueData = (months = 6) => {
-  const data = [];
-  const currentDate = new Date();
-  
-  for (let i = months - 1; i >= 0; i--) {
-    const date = subMonths(currentDate, i);
-    const revenue = Math.floor(Math.random() * 500) + 100; // Random revenue between 100 and 600
-    data.push({
-      month: format(date, 'MMM yyyy'),
-      revenue
-    });
-  }
-  
-  return data;
+type MonthlyRevenue = {
+  month: string;
+  revenue: number;
+  bookings: number;
 };
 
-const generateMockBookingData = (months = 6) => {
-  const data = [];
-  const currentDate = new Date();
-  
-  for (let i = months - 1; i >= 0; i--) {
-    const date = subMonths(currentDate, i);
-    const bookings = Math.floor(Math.random() * 10) + 1; // Random bookings between 1 and 10
-    data.push({
-      month: format(date, 'MMM yyyy'),
-      bookings
-    });
-  }
-  
-  return data;
+type DashboardBooking = {
+  id: string;
+  spaceId: string;
+  spaceTitle: string;
+  address: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  totalPrice: number;
+  createdAt: string;
 };
 
-const generateMockTransactions = (count = 10) => {
-  const transactions = [];
-  const currentDate = new Date();
-  const transactionTypes = ['booking', 'payout', 'refund'];
-  const spaceNames = [
-    'Modern Office in City Center',
-    'Cozy Desk Space in Creative Hub',
-    'Meeting Room for Professional Events',
-    'Amsterdam Canal View Office',
-    'Rotterdam Modern Workspace'
-  ];
-  
-  for (let i = 0; i < count; i++) {
-    const type = transactionTypes[Math.floor(Math.random() * transactionTypes.length)];
-    const date = new Date(currentDate);
-    date.setDate(date.getDate() - Math.floor(Math.random() * 60)); // Random date within last 60 days
-    
-    let amount, status;
-    
-    if (type === 'booking') {
-      amount = Math.floor(Math.random() * 100) + 20; // Random amount between 20 and 120
-      status = Math.random() > 0.1 ? 'completed' : 'pending';
-    } else if (type === 'payout') {
-      amount = -(Math.floor(Math.random() * 200) + 50); // Random payout between 50 and 250
-      status = Math.random() > 0.05 ? 'completed' : 'processing';
-    } else {
-      amount = -(Math.floor(Math.random() * 50) + 10); // Random refund between 10 and 60
-      status = 'completed';
-    }
-    
-    transactions.push({
-      id: `txn-${i}`,
-      date,
-      type,
-      description: type === 'booking' 
-        ? `Booking: ${spaceNames[Math.floor(Math.random() * spaceNames.length)]}` 
-        : type === 'payout' 
-          ? 'Payout to bank account' 
-          : 'Refund for cancelled booking',
-      amount,
-      status
-    });
-  }
-  
-  // Sort by date, newest first
-  return transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+type DashboardStats = {
+  totalListings: number;
+  totalBookings: number;
+  totalRevenue: number;
+  availableForPayout: number;
+};
+
+type DashboardData = {
+  monthlyRevenue: MonthlyRevenue[];
+  bookings: DashboardBooking[];
+  stats: DashboardStats;
 };
 
 export default function FinancialPage() {
   const [timeRange, setTimeRange] = useState("6m");
-  const [revenueData, setRevenueData] = useState<any[]>([]);
-  const [bookingData, setBookingData] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Redirect if not authenticated
     if (!isLoading && !isAuthenticated) {
       toast({
         title: "Authentication required",
         description: "Please sign in to view your financial information",
-        variant: "destructive"
+        variant: "destructive",
       });
       router.push("/signin");
       return;
     }
 
-    // Load financial data
-    const loadFinancialData = () => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        // Generate mock data based on selected time range
-        const months = timeRange === "3m" ? 3 : timeRange === "6m" ? 6 : 12;
-        
-        setRevenueData(generateMockRevenueData(months));
-        setBookingData(generateMockBookingData(months));
-        setTransactions(generateMockTransactions(15));
-      } catch (error) {
-        console.error("Error loading financial data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load financial data. Please try again.",
-          variant: "destructive"
-        });
+        const res = await fetch("/api/dashboard");
+        if (!res.ok) {
+          throw new Error("Failed to load financial data");
+        }
+        const json = (await res.json()) as DashboardData;
+        if (!cancelled) setData(json);
+      } catch (err) {
+        console.error("Error loading financial data:", err);
+        if (!cancelled) {
+          setError("Failed to load financial data. Please try again.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    if (isAuthenticated) {
-      loadFinancialData();
-    }
-  }, [isAuthenticated, isLoading, router, toast, timeRange]);
+    fetchData();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, isLoading, router, toast]);
 
-  // Calculate summary metrics
-  const totalRevenue = revenueData.reduce((sum, item) => sum + item.revenue, 0);
-  const totalBookings = bookingData.reduce((sum, item) => sum + item.bookings, 0);
+  // The API returns the last 6 months; the selector narrows to the most recent
+  // 3 or 6 of those.
+  const monthsToShow = timeRange === "3m" ? 3 : 6;
+  const monthlyRevenue = (data?.monthlyRevenue ?? []).slice(-monthsToShow);
+
+  // Realized bookings, newest first, used as the transaction list.
+  const transactions = [...(data?.bookings ?? [])]
+    .filter((b) => b.status === "CONFIRMED" || b.status === "COMPLETED")
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // Summary metrics derived from the (windowed) monthly series.
+  const totalRevenue = monthlyRevenue.reduce((sum, item) => sum + item.revenue, 0);
+  const totalBookings = monthlyRevenue.reduce((sum, item) => sum + item.bookings, 0);
   const averageBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
-  
-  // Calculate month-over-month growth
-  const currentMonthRevenue = revenueData.length > 0 ? revenueData[revenueData.length - 1].revenue : 0;
-  const previousMonthRevenue = revenueData.length > 1 ? revenueData[revenueData.length - 2].revenue : 0;
-  const revenueGrowth = previousMonthRevenue > 0 
-    ? ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
-    : 0;
+  const availableForPayout = totalRevenue * 0.8;
+
+  const currentMonthRevenue =
+    monthlyRevenue.length > 0 ? monthlyRevenue[monthlyRevenue.length - 1].revenue : 0;
+  const previousMonthRevenue =
+    monthlyRevenue.length > 1 ? monthlyRevenue[monthlyRevenue.length - 2].revenue : 0;
+  const revenueGrowth =
+    previousMonthRevenue > 0
+      ? ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100
+      : 0;
+
+  const hasRevenueData = monthlyRevenue.some((m) => m.revenue > 0 || m.bookings > 0);
+  const maxRevenue = Math.max(1, ...monthlyRevenue.map((d) => d.revenue));
+  const maxBookings = Math.max(1, ...monthlyRevenue.map((d) => d.bookings));
 
   if (isLoading || loading) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="w-8 h-8 border-t-2 border-b-2 border-primary rounded-full animate-spin"></div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+          <AlertCircle className="h-8 w-8 text-destructive mb-4" />
+          <h3 className="text-xl font-medium mb-2">Something went wrong</h3>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -187,7 +163,6 @@ export default function FinancialPage() {
           <SelectContent>
             <SelectItem value="3m">Last 3 months</SelectItem>
             <SelectItem value="6m">Last 6 months</SelectItem>
-            <SelectItem value="12m">Last 12 months</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -196,9 +171,7 @@ export default function FinancialPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Revenue
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">€{totalRevenue.toFixed(2)}</div>
@@ -219,15 +192,11 @@ export default function FinancialPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Bookings
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Bookings</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalBookings}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              In the selected period
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">In the selected period</p>
           </CardContent>
         </Card>
         <Card>
@@ -238,9 +207,7 @@ export default function FinancialPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">€{averageBookingValue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Per booking
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Per booking</p>
           </CardContent>
         </Card>
         <Card>
@@ -250,7 +217,7 @@ export default function FinancialPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">€{(totalRevenue * 0.8).toFixed(2)}</div>
+            <div className="text-2xl font-bold">€{availableForPayout.toFixed(2)}</div>
             <div className="flex items-center mt-1">
               <Button variant="link" className="h-auto p-0 text-xs">
                 Request Payout
@@ -266,116 +233,119 @@ export default function FinancialPage() {
           <TabsTrigger value="revenue">Revenue</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="revenue" className="mt-6 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Revenue Over Time</CardTitle>
               <CardDescription>
-                Your earnings from {timeRange === "3m" ? "the last 3 months" : timeRange === "6m" ? "the last 6 months" : "the last 12 months"}
+                Your earnings from {timeRange === "3m" ? "the last 3 months" : "the last 6 months"}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* In a real app, this would be a chart component */}
-              <div className="h-[300px] flex items-end justify-between gap-2">
-                {revenueData.map((item, index) => (
-                  <div key={index} className="flex flex-col items-center flex-1">
-                    <div 
-                      className="bg-primary w-full rounded-t-md" 
-                      style={{ height: `${(item.revenue / Math.max(...revenueData.map(d => d.revenue))) * 200}px` }}
-                    ></div>
-                    <div className="text-xs mt-2 text-muted-foreground">{item.month}</div>
-                    <div className="text-sm font-medium">€{item.revenue}</div>
-                  </div>
-                ))}
-              </div>
+              {hasRevenueData ? (
+                <div className="h-[300px] flex items-end justify-between gap-2">
+                  {monthlyRevenue.map((item) => (
+                    <div key={item.month} className="flex flex-col items-center flex-1">
+                      <div
+                        className="bg-primary w-full rounded-t-md"
+                        style={{ height: `${(item.revenue / maxRevenue) * 200}px` }}
+                      ></div>
+                      <div className="text-xs mt-2 text-muted-foreground">{item.month}</div>
+                      <div className="text-sm font-medium">€{item.revenue.toFixed(0)}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-[300px] flex flex-col items-center justify-center text-center">
+                  <p className="text-muted-foreground">
+                    No revenue yet. Once your listings receive confirmed bookings, your earnings
+                    will appear here.
+                  </p>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="border-t px-6 py-4">
-              <Button variant="outline" className="ml-auto">
+              <Button variant="outline" className="ml-auto" disabled={!hasRevenueData}>
                 <Download className="mr-2 h-4 w-4" />
                 Download Report
               </Button>
             </CardFooter>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Bookings Over Time</CardTitle>
-              <CardDescription>
-                Number of bookings received
-              </CardDescription>
+              <CardDescription>Number of confirmed bookings received</CardDescription>
             </CardHeader>
             <CardContent>
-              {/* In a real app, this would be a chart component */}
-              <div className="h-[300px] flex items-end justify-between gap-2">
-                {bookingData.map((item, index) => (
-                  <div key={index} className="flex flex-col items-center flex-1">
-                    <div 
-                      className="bg-blue-500 w-full rounded-t-md" 
-                      style={{ height: `${(item.bookings / Math.max(...bookingData.map(d => d.bookings))) * 200}px` }}
-                    ></div>
-                    <div className="text-xs mt-2 text-muted-foreground">{item.month}</div>
-                    <div className="text-sm font-medium">{item.bookings}</div>
-                  </div>
-                ))}
-              </div>
+              {hasRevenueData ? (
+                <div className="h-[300px] flex items-end justify-between gap-2">
+                  {monthlyRevenue.map((item) => (
+                    <div key={item.month} className="flex flex-col items-center flex-1">
+                      <div
+                        className="bg-blue-500 w-full rounded-t-md"
+                        style={{ height: `${(item.bookings / maxBookings) * 200}px` }}
+                      ></div>
+                      <div className="text-xs mt-2 text-muted-foreground">{item.month}</div>
+                      <div className="text-sm font-medium">{item.bookings}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-[300px] flex flex-col items-center justify-center text-center">
+                  <p className="text-muted-foreground">No bookings in the selected period.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="transactions" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Transaction History</CardTitle>
-              <CardDescription>
-                Your recent financial transactions
-              </CardDescription>
+              <CardDescription>Your recent booking earnings</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {transactions.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between border-b pb-4 last:border-0">
-                    <div className="flex items-start gap-3">
-                      <div className={`rounded-full p-2 ${
-                        transaction.type === 'booking' 
-                          ? 'bg-green-100 text-green-700' 
-                          : transaction.type === 'payout' 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-red-100 text-red-700'
-                      }`}>
-                        {transaction.type === 'booking' ? (
+              {transactions.length === 0 ? (
+                <div className="py-10 flex flex-col items-center justify-center text-center">
+                  <p className="text-muted-foreground">
+                    No transactions yet. Confirmed bookings on your listings will show up here.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {transactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between border-b pb-4 last:border-0"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="rounded-full p-2 bg-green-100 text-green-700">
                           <Calendar className="h-4 w-4" />
-                        ) : transaction.type === 'payout' ? (
-                          <CreditCard className="h-4 w-4" />
-                        ) : (
-                          <ArrowDownRight className="h-4 w-4" />
-                        )}
+                        </div>
+                        <div>
+                          <p className="font-medium">Booking: {transaction.spaceTitle}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(transaction.createdAt), "MMM d, yyyy")} •
+                            <span className="ml-1 text-green-600">
+                              {transaction.status.charAt(0) +
+                                transaction.status.slice(1).toLowerCase()}
+                            </span>
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{transaction.description}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(transaction.date, 'MMM d, yyyy')} • 
-                          <span className={`ml-1 ${
-                            transaction.status === 'completed' 
-                              ? 'text-green-600' 
-                              : transaction.status === 'pending' 
-                                ? 'text-yellow-600' 
-                                : 'text-blue-600'
-                          }`}>
-                            {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
-                          </span>
-                        </p>
+                      <div className="font-medium text-green-600">
+                        +€{transaction.totalPrice.toFixed(2)}
                       </div>
                     </div>
-                    <div className={`font-medium ${transaction.amount >= 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      {transaction.amount >= 0 ? '+' : ''}€{transaction.amount.toFixed(2)}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
             <CardFooter className="border-t px-6 py-4">
-              <Button variant="outline" className="ml-auto">
+              <Button variant="outline" className="ml-auto" disabled={transactions.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
                 Export Transactions
               </Button>
