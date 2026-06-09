@@ -25,7 +25,11 @@ export const authConfig = {
           Google({
             clientId: googleClientId,
             clientSecret: googleClientSecret,
-            allowDangerousEmailAccountLinking: true,
+            // Intentionally NOT auto-linking by email: allowDangerousEmailAccountLinking
+            // is left at its secure default (false) to avoid an account-takeover vector
+            // where signing in with Google would merge into an unverified credentials
+            // account sharing the same email. Implement an explicit, verified linking
+            // flow if account linking is needed.
           }),
         ]
       : [],
