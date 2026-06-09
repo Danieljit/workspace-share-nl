@@ -19,6 +19,20 @@
 [build.processing]
   skip_processing = true
 
+# Security response headers (applied to all routes).
+# NOTE: a full Content-Security-Policy is intentionally omitted here — it needs
+# per-source testing (Stripe, Leaflet/OpenStreetMap tiles, Cloudinary, Google
+# Fonts) before enabling, or it will break those integrations. Add it as a
+# dedicated follow-up.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+
 # Handle client-side routing
 [[redirects]]
   from = "/*"
