@@ -1,147 +1,186 @@
 import { db } from "@/lib/db"
 import { NextResponse } from "next/server"
-import { SpaceType } from "@prisma/client"
+import { Prisma, SpaceType } from "@prisma/client"
+import { requireUser, apiErrorResponse, ApiError } from "@/lib/session"
+import { parseJsonArray } from "@/types"
+
+export const dynamic = "force-dynamic"
+
+const VALID_SPACE_TYPES = new Set<string>(Object.values(SpaceType))
+
+/** Stringify a value for a JSON column, accepting either an object/array or a pre-stringified value. */
+function toJsonColumn(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value === "string") return value
+  return JSON.stringify(value)
+}
+
+/** Parse an optional numeric field, returning undefined for missing or non-finite values. */
+function optionalNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined
+  const n = Number(value)
+  return Number.isFinite(n) ? n : undefined
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const location = searchParams.get("location")
   const type = searchParams.get("type")
 
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1)
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20),
+  )
+
   try {
-    // Query without filters to avoid schema mismatch errors
-    const spaces = await db.space.findMany({
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true
-          }
-        },
-      },
-    })
+    const where: Prisma.SpaceWhereInput = {}
 
-    // Apply filters in memory instead
-    let filteredSpaces = spaces
     if (location) {
-      filteredSpaces = filteredSpaces.filter(space => {
-        // Check both old and new schema fields
-        const addressField = (space as any).address || (space as any).location || ''
-        return addressField.toLowerCase().includes(location.toLowerCase())
-      })
-    }
-    
-    if (type) {
-      filteredSpaces = filteredSpaces.filter(space => {
-        // Check both old and new schema fields
-        const typeField = (space as any).workspaceType || (space as any).type
-        return typeField === type
-      })
+      where.OR = [
+        { city: { contains: location, mode: "insensitive" } },
+        { address: { contains: location, mode: "insensitive" } },
+      ]
     }
 
-    // Transform the data to match the expected format in the frontend
-    const transformedSpaces = filteredSpaces.map(space => {
-      // Check if we're dealing with new schema or old schema
-      const isNewSchema = 'title' in space
-      
-      return {
-        id: space.id,
-        name: isNewSchema ? (space as any).title : (space as any).name,
-        description: space.description,
-        location: isNewSchema 
-          ? `${(space as any).address || ''}, ${(space as any).city || ''}`.trim() 
-          : (space as any).location || 'Unknown Location',
-        type: isNewSchema ? (space as any).workspaceType : (space as any).type,
-        price: isNewSchema ? (space as any).pricePerDay || 0 : (space as any).price || 0,
-        amenities: space.amenities || '',
-        images: isNewSchema ? (space as any).photos || '' : (space as any).images || '',
-        owner: {
-          id: space.owner.id,
-          name: space.owner.name,
-          email: space.owner.email,
-          image: space.owner.image
-        }
-      }
+    if (type && VALID_SPACE_TYPES.has(type)) {
+      where.workspaceType = type as SpaceType
+    }
+
+    const [spaces, total] = await Promise.all([
+      db.space.findMany({
+        where,
+        include: {
+          owner: {
+            // Public listing — do not expose owner account email.
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      db.space.count({ where }),
+    ])
+
+    const transformedSpaces = spaces.map((space) => ({
+      id: space.id,
+      name: space.title,
+      description: space.description,
+      location: `${space.address || ""}, ${space.city || ""}`
+        .trim()
+        .replace(/^,\s*/, "")
+        .replace(/,\s*$/, ""),
+      type: space.workspaceType,
+      price: space.pricePerDay,
+      amenities: parseJsonArray(space.amenities),
+      images: parseJsonArray(space.photos),
+      owner: {
+        id: space.owner.id,
+        name: space.owner.name,
+        image: space.owner.image,
+      },
+    }))
+
+    return NextResponse.json({
+      spaces: transformedSpaces,
+      total,
+      page,
+      limit,
     })
-
-    return NextResponse.json(transformedSpaces)
   } catch (error) {
-    console.error('Error fetching spaces:', error)
-    return NextResponse.json({ error: 'Failed to fetch spaces' }, { status: 500 })
+    console.error("Error fetching spaces:", error)
+    return NextResponse.json({ error: "Failed to fetch spaces" }, { status: 500 })
   }
 }
 
 export async function POST(req: Request) {
-  // For demonstration purposes, we'll use a mock user ID
-  const mockUserId = "1"
-
   try {
+    const user = await requireUser()
+
     const json = await req.json()
 
-    // Find an admin user to associate with the space
-    let ownerId = mockUserId
-    const adminUser = await db.user.findFirst({
-      where: {
-        email: 'admin@example.com'
-      }
-    })
-    
-    if (adminUser) {
-      ownerId = adminUser.id
+    // Validate required fields.
+    const title: unknown = json.title ?? json.name
+    const workspaceType: unknown = json.workspaceType ?? json.type
+    const address: unknown = json.address ?? json.location
+    const pricePerDayRaw: unknown = json.pricePerDay ?? json.price
+
+    if (typeof title !== "string" || title.trim().length === 0) {
+      throw new ApiError(400, "Title is required")
+    }
+    if (
+      typeof workspaceType !== "string" ||
+      !VALID_SPACE_TYPES.has(workspaceType)
+    ) {
+      throw new ApiError(400, "A valid workspaceType is required")
+    }
+    if (typeof address !== "string" || address.trim().length === 0) {
+      throw new ApiError(400, "Address is required")
+    }
+    const pricePerDay = Number(pricePerDayRaw)
+    if (!Number.isFinite(pricePerDay) || pricePerDay <= 0) {
+      throw new ApiError(400, "A valid pricePerDay is required")
     }
 
-    // Create the space with type assertion to bypass TypeScript errors
-    // This is necessary because our Prisma client might not be in sync with the schema
-    const space = await db.space.create({
-      data: {
-        // Basic information
-        title: json.title || json.name || 'Unnamed Space',
-        description: json.description || '',
-        workspaceType: (json.workspaceType || json.type || 'DESK') as SpaceType,
-        
-        // Location information
-        address: json.address || json.location || 'Unknown Address',
-        city: json.city || 'Amsterdam',
-        postalCode: json.postalCode || '1000 AA',
-        coordinates: typeof json.coordinates === 'object' ? JSON.stringify(json.coordinates) : json.coordinates,
-        directions: json.directions,
-        transportInfo: json.transportInfo,
-        parkingInfo: json.parkingInfo,
-        
-        // Building and workspace details
-        buildingContext: typeof json.buildingContext === 'object' ? JSON.stringify(json.buildingContext) : json.buildingContext,
-        workspaceDetails: typeof json.workspaceDetails === 'object' ? JSON.stringify(json.workspaceDetails) : json.workspaceDetails,
-        
-        // Amenities and photos
-        amenities: Array.isArray(json.amenities) ? JSON.stringify(json.amenities) : json.amenities,
-        photos: Array.isArray(json.photos) ? JSON.stringify(json.photos) : json.photos,
-        
-        // Availability
-        availability: typeof json.availability === 'object' ? JSON.stringify(json.availability) : json.availability,
-        
-        // Pricing
-        pricePerDay: Number(json.pricePerDay || json.price || 0),
-        pricePerThreeDays: json.pricePerThreeDays ? Number(json.pricePerThreeDays) : undefined,
-        pricePerWeek: json.pricePerWeek ? Number(json.pricePerWeek) : undefined,
-        pricePerMonth: json.pricePerMonth ? Number(json.pricePerMonth) : undefined,
-        
-        // Host information
-        hostName: json.hostName || 'Host',
-        hostEmail: json.hostEmail,
-        hostPhone: json.hostPhone,
-        preferredContact: json.preferredContact,
-        responseTime: json.responseTime,
-        hostInfo: json.hostInfo,
-        
-        // Ownership
-        ownerId: ownerId,
-      } as any // Use type assertion to bypass TypeScript errors
-    })
+    const data: Prisma.SpaceCreateInput = {
+      // Basic information
+      title: title.trim(),
+      description: typeof json.description === "string" ? json.description : "",
+      workspaceType: workspaceType as SpaceType,
+
+      // Location information
+      address: address.trim(),
+      city: typeof json.city === "string" && json.city ? json.city : "Amsterdam",
+      postalCode:
+        typeof json.postalCode === "string" && json.postalCode
+          ? json.postalCode
+          : "1000 AA",
+      coordinates: toJsonColumn(json.coordinates),
+      directions: json.directions ?? undefined,
+      transportInfo: json.transportInfo ?? undefined,
+      parkingInfo: json.parkingInfo ?? undefined,
+
+      // Building and workspace details
+      buildingContext: toJsonColumn(json.buildingContext),
+      workspaceDetails: toJsonColumn(json.workspaceDetails),
+
+      // Amenities and photos (stored as stringified arrays)
+      amenities: toJsonColumn(json.amenities),
+      photos: toJsonColumn(json.photos),
+
+      // Availability
+      availability: toJsonColumn(json.availability),
+
+      // Pricing
+      pricePerDay,
+      pricePerThreeDays: optionalNumber(json.pricePerThreeDays),
+      pricePerWeek: optionalNumber(json.pricePerWeek),
+      pricePerMonth: optionalNumber(json.pricePerMonth),
+
+      // Host information
+      hostName:
+        typeof json.hostName === "string" && json.hostName
+          ? json.hostName
+          : user.name || "Host",
+      hostEmail: json.hostEmail ?? user.email ?? undefined,
+      hostPhone: json.hostPhone ?? undefined,
+      preferredContact: json.preferredContact ?? undefined,
+      responseTime: json.responseTime ?? undefined,
+      hostInfo: toJsonColumn(json.hostInfo),
+
+      // Ownership
+      owner: { connect: { id: user.id } },
+    }
+
+    const space = await db.space.create({ data })
 
     return NextResponse.json(space)
   } catch (error) {
-    console.error('Error creating space:', error)
-    return NextResponse.json({ error: 'Failed to create space' }, { status: 500 })
+    return apiErrorResponse(error)
   }
 }
